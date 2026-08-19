@@ -47,6 +47,10 @@
     text-transform:uppercase;color:var(--zinc);}
   .track{height:5px;background:rgba(232,228,220,.1);width:100%;margin-top:10px;}
   .track i{display:block;height:100%;background:var(--chip-2);}
+  .consist .ready{font-family:"Barlow Condensed",sans-serif;font-weight:700;
+    font-size:22px;text-transform:uppercase;letter-spacing:.02em;}
+  .consist .readysub{font-family:"IBM Plex Mono",monospace;font-size:11px;
+    letter-spacing:.1em;text-transform:uppercase;color:var(--chip-1);margin-top:3px;}
 
   /* ---- targets ---- */
   details.tg{border:1px solid var(--line);border-top:none;margin-bottom:26px;}
@@ -89,6 +93,7 @@
   .nm{font-family:"Barlow Condensed",sans-serif;font-weight:600;text-transform:uppercase;
     font-size:19px;letter-spacing:.02em;line-height:1.1;}
   .pr{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--zinc);margin-top:3px;line-height:1.45;}
+  .why{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--chip-1);margin-top:2px;}
   .wtin{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:26px;
     width:64px;background:none;border:none;border-bottom:1px dashed var(--zinc);
     color:var(--plaster);text-align:right;padding:0 2px 1px;}
@@ -213,6 +218,15 @@
     padding-top:10px;border-top:1px solid var(--line);font-style:italic;}
   .hempty{font-size:14px;color:var(--zinc);line-height:1.6;}
 
+  .complete{border:1px solid var(--chip-2);background:rgba(78,122,110,.08);
+    padding:16px 18px;margin-top:18px;}
+  .clabel{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--chip-1);}
+  .csub{font-size:13px;color:var(--zinc);margin:4px 0 10px;}
+  .complete .hrow{font-size:13px;}
+  .cnext{font-size:12.5px;color:var(--zinc);margin-top:10px;padding-top:10px;
+    border-top:1px solid var(--line);}
+
   footer{padding-top:16px;border-top:1px solid var(--line);
     font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.1em;
     text-transform:uppercase;color:var(--zinc);}
@@ -238,11 +252,7 @@
 
   <div id="mainView">
 
-    <div class="consist">
-      <span class="big" id="cDone">0</span>
-      <span class="lbl">of <b id="cTotal">0</b> sessions logged so far</span>
-      <div class="track"><i id="cBar" style="width:0%"></i></div>
-    </div>
+    <div class="consist" id="consist"></div>
 
     <details class="tg">
       <summary>Two-year targets</summary>
@@ -571,6 +581,13 @@ function render(m,d){
       const fails=state.fails[l.id]||0;
       if(fails>0&&!complete) meta+=' · ✗'+fails+' of 3';
 
+      let why='';
+      if(last!==null){
+        if(round(e.w)>round(last)) why='↑ up '+round(e.w-last)+' kg from last clean session';
+        else if(round(e.w)===round(last)) why='↔ same as last time — repeat until clean';
+        else why='↓ down '+round(last-e.w)+' kg after deload';
+      }
+
       let setsRow='<div class="setsrow">';
       for(let i=0;i<sc.sets;i++){
         const spec=setSpec(sc,e.w,i), on=e.setsDone[i];
@@ -591,12 +608,28 @@ function render(m,d){
 
       h+='<div class="lift'+(e.failed?' is-locked':'')+'"><div class="lrow">'+
          '<div class="meta"><div class="nm">'+l.name+(e.pr?'<span class="prbadge">PR</span>':'')+'</div>'+
-         '<div class="pr">'+meta+'</div></div>'+
+         '<div class="pr">'+meta+'</div>'+(why?'<div class="why">'+why+'</div>':'')+'</div>'+
          '<div><input class="wtin" type="number" step="2.5" min="0" value="'+e.w+'" data-l="'+l.id+'" aria-label="'+l.name+' kg"><span class="unit">kg</span></div>'+
          '<button class="fail" type="button" aria-pressed="'+e.failed+'" data-f="'+l.id+'" aria-label="Missed">'+(e.failed?'✗':'')+'</button>'+
          '</div>'+setsRow+extra+'</div>';
       if(deloadMsg[l.id]) h+='<div class="deload"><b>Deload.</b> '+deloadMsg[l.id]+'</div>';
     });
+
+    if(LIFTS.every(l=>liftComplete(s[l.id]))){
+      let prCount=0, rows='';
+      LIFTS.forEach(l=>{
+        const e=s[l.id], last=lastDone(m,d,l.id);
+        let delta;
+        if(last===null) delta='started at '+e.w+' kg';
+        else if(round(e.w)>round(last)) delta='+'+round(e.w-last)+' kg';
+        else delta='steady';
+        if(e.pr) prCount++;
+        rows+='<div class="hrow"><span class="hn">'+l.name+'</span><span class="hv">'+delta+(e.pr?' <span class="prbadge">PR</span>':'')+'</span></div>';
+      });
+      h+='<div class="complete"><p class="clabel">Session complete</p>'+
+         '<p class="csub">4 / 4 lifts completed'+(prCount?' · '+prCount+' new PR'+(prCount>1?'s':''):'')+'</p>'+
+         rows+'<p class="cnext">Next session is ready.</p></div>';
+    }
     h+=bwBlock(s,m,d);
     h+='<p class="seclabel">Session note</p>'+
        '<textarea class="note" placeholder="How it moved. Anything that hurt. Sleep, food, work that day.">'+escapeHtml(s.note||'')+'</textarea>';
@@ -674,9 +707,14 @@ function stats(){
       if(s&&LIFTS.every(l=>s[l.id]&&(liftComplete(s[l.id])||s[l.id].failed))) done++;
     }
   });
-  document.getElementById('cDone').textContent=done;
-  document.getElementById('cTotal').textContent=sched;
-  document.getElementById('cBar').style.width=(sched?Math.round(done/sched*100):0)+'%';
+  const cEl=document.getElementById('consist');
+  if(done===0){
+    cEl.innerHTML='<div><div class="ready">Block 01</div><div class="readysub">Ready to train</div></div>';
+  }else{
+    const pct=sched?Math.round(done/sched*100):0;
+    cEl.innerHTML='<span class="big">'+done+'</span><span class="lbl">of <b>'+sched+'</b> sessions logged so far</span>'+
+      '<div class="track" style="flex-basis:100%"><i style="width:'+pct+'%"></i></div>';
+  }
 
   const t=document.getElementById('targets');
   let h='';
