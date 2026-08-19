@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Training Block 01 — 19 Aug to 30 Sep 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#161C22;
+    --panel:#1D242B;
+    --plaster:#E8E4DC;
+    --zinc:#8D949B;
+    --chip-1:#9FB2A6;
+    --chip-2:#4E7A6E;
+    --chip-3:#1F4C46;
+    --oxide:#B5432B;
+    --line:rgba(232,228,220,.16);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--ink);color:var(--plaster);
+    font-family:"IBM Plex Sans",system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;padding:26px 16px 60px;
+  }
+  .wrap{max-width:940px;margin:0 auto;}
+  .eyebrow{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.22em;
+    text-transform:uppercase;color:var(--zinc);margin-bottom:10px;}
+  h1{font-family:"Barlow Condensed",sans-serif;font-weight:700;text-transform:uppercase;
+    font-size:clamp(34px,10vw,66px);line-height:.9;margin:0 0 14px;}
+  h1 em{font-style:normal;color:var(--chip-2);}
+  .standfirst{max-width:52ch;font-size:15px;line-height:1.55;color:#C6C2BA;margin:0 0 26px;}
+
+  .scale{display:flex;margin:0 0 30px;border:1px solid var(--line);}
+  .scale div{flex:1;padding:13px 10px 15px;font-family:"IBM Plex Mono",monospace;
+    font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink);}
+  .scale div span{display:block;font-size:9.5px;opacity:.72;margin-top:5px;}
+  .s1{background:var(--chip-1);}
+  .s2{background:var(--chip-2);color:var(--plaster)!important;}
+  .s3{background:var(--chip-3);color:var(--plaster)!important;}
+
+  .months{display:grid;grid-template-columns:1fr;gap:30px;}
+  @media(min-width:760px){.months{grid-template-columns:1fr 1fr;}}
+  h2{font-family:"Barlow Condensed",sans-serif;font-weight:600;text-transform:uppercase;
+    letter-spacing:.06em;font-size:21px;margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid var(--line);}
+  .dow,.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+  .dow{margin-bottom:6px;}
+  .dow span{font-family:"IBM Plex Mono",monospace;font-size:9.5px;color:var(--zinc);text-align:center;}
+  .cell{aspect-ratio:1/1;border:1px solid var(--line);display:flex;flex-direction:column;
+    justify-content:space-between;padding:5px 5px 4px;border-radius:2px;min-height:44px;
+    background:none;color:inherit;font:inherit;text-align:left;}
+  .cell .n{font-family:"IBM Plex Mono",monospace;font-size:11px;font-weight:500;}
+  .cell .t{font-family:"IBM Plex Mono",monospace;font-size:8px;letter-spacing:.06em;
+    text-transform:uppercase;opacity:.85;}
+  .empty{border-color:transparent;}
+  button.cell{cursor:pointer;}
+  button.cell:focus-visible{outline:2px solid var(--plaster);outline-offset:2px;}
+  .gym{border-color:transparent;color:var(--ink);}
+  .gym.p1{background:var(--chip-1);}
+  .gym.p2{background:var(--chip-2);color:var(--plaster);}
+  .gym.p3{background:var(--chip-3);color:var(--plaster);}
+  .home .t{color:var(--zinc);}
+  .rest{opacity:.4;}
+  .today{outline:2px solid var(--oxide);outline-offset:1px;}
+  .sel{outline:2px solid var(--plaster);outline-offset:1px;}
+  .done::after{content:"";position:relative;}
+  .gym.doneMark .n::before{content:"✓ ";}
+
+  .legend{display:flex;flex-wrap:wrap;gap:14px;margin:24px 0 30px;
+    font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.07em;
+    text-transform:uppercase;color:var(--zinc);}
+  .legend i{display:inline-block;width:11px;height:11px;margin-right:7px;
+    vertical-align:-1px;border:1px solid var(--line);}
+
+  /* session panel */
+  #panel{border:1px solid var(--line);background:var(--panel);padding:22px 20px 24px;margin-bottom:30px;}
+  #panel .dates{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--zinc);margin-bottom:6px;}
+  #panel h3{font-family:"Barlow Condensed",sans-serif;font-weight:700;text-transform:uppercase;
+    font-size:27px;margin:0 0 4px;}
+  #panel .sub{font-size:14px;color:#C6C2BA;margin:0 0 18px;line-height:1.55;}
+  .lift{display:flex;align-items:center;gap:14px;padding:13px 0;border-top:1px solid var(--line);}
+  .lift:last-of-type{border-bottom:1px solid var(--line);}
+  .lift .meta{flex:1;min-width:0;}
+  .lift .nm{font-family:"Barlow Condensed",sans-serif;font-weight:600;text-transform:uppercase;
+    font-size:19px;letter-spacing:.02em;line-height:1.1;}
+  .lift .pr{font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--zinc);margin-top:3px;}
+  .lift .wt{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:26px;
+    white-space:nowrap;letter-spacing:.01em;}
+  .lift .wt small{font-size:12px;font-weight:500;color:var(--zinc);margin-left:2px;}
+  .wtin{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:26px;
+    width:68px;background:none;border:none;border-bottom:1px dashed var(--zinc);
+    color:var(--plaster);text-align:right;padding:0 2px 1px;}
+  .wtin:focus{outline:none;border-bottom-color:var(--oxide);}
+  .wtin::-webkit-outer-spin-button,.wtin::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+  .wtin{-moz-appearance:textfield;}
+  .chk{width:34px;height:34px;flex:none;border:1px solid var(--zinc);background:none;
+    border-radius:2px;cursor:pointer;color:var(--plaster);font-size:16px;line-height:1;}
+  .chk[aria-pressed="true"]{background:var(--chip-2);border-color:var(--chip-2);}
+  .chk:focus-visible{outline:2px solid var(--plaster);outline-offset:2px;}
+  .lift.is-done .nm,.lift.is-done .wt{opacity:.5;}
+  .ramp{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--zinc);
+    margin-top:5px;line-height:1.5;}
+  .note{font-size:13.5px;line-height:1.6;color:var(--zinc);margin-top:16px;}
+  .note strong{color:var(--plaster);}
+
+  .rule{margin-top:30px;padding:20px 22px;border:1px solid var(--oxide);}
+  .rule .lbl{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.2em;
+    text-transform:uppercase;color:var(--oxide);margin-bottom:8px;}
+  .rule p{margin:0 0 9px;font-size:14.5px;line-height:1.6;color:#CFCBC3;}
+  .rule p:last-child{margin-bottom:0;}
+
+  footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--line);display:flex;
+    justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;
+    font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--zinc);}
+  footer button{font:inherit;letter-spacing:.1em;text-transform:uppercase;background:none;
+    border:1px solid var(--line);color:var(--zinc);padding:8px 12px;border-radius:2px;cursor:pointer;}
+  footer button:hover{color:var(--oxide);border-color:var(--oxide);}
+  @media (prefers-reduced-motion:no-preference){
+    #panel{transition:opacity .18s ease;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="eyebrow">Block 01 · 19 Aug — 30 Sep 2026 · 3 sessions/week</p>
+  <h1>Every number<br>starts at the <em>bar</em></h1>
+  <p class="standfirst">Tap any day to see the session. Tick a lift when you complete every set with clean form — the next session's weight goes up on its own.</p>
+
+  <div class="scale">
+    <div class="s1">01 Reset<span>Empty bar</span></div>
+    <div class="s2">02 Load-in<span>First plates</span></div>
+    <div class="s3">03 Pyramid<span>Real weight</span></div>
+  </div>
+
+  <div id="panel" aria-live="polite"></div>
+
+  <div class="months">
+    <section>
+      <h2>August</h2>
+      <div class="dow"><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span></div>
+      <div class="grid" id="aug"></div>
+    </section>
+    <section>
+      <h2>September</h2>
+      <div class="dow"><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span></div>
+      <div class="grid" id="sep"></div>
+    </section>
+  </div>
+
+  <div class="legend">
+    <span><i style="background:var(--chip-2);border-color:var(--chip-2)"></i>Gym — full body</span>
+    <span><i></i>Home — light, 5–10 min</span>
+    <span><i style="opacity:.4"></i>Rest</span>
+    <span><i style="border-color:var(--oxide)"></i>Today</span>
+  </div>
+
+  <div class="rule">
+    <p class="lbl">Standing rules</p>
+    <p><strong>Tick means all sets, clean.</strong> If the last set turned into a grind or the form broke, leave it unticked and repeat the weight. The bar doesn't care what you meant to lift.</p>
+    <p><strong>Lower body override:</strong> if it feels off on any given day, that session reverts to light technique work regardless of the phase. Progress data beats the schedule.</p>
+    <p><strong>Home days:</strong> 5–10 minutes. Pull-ups and push-ups stopping 1–2 reps short of failure, plus hip, shoulder and ankle mobility. Sore the next day means you did too much.</p>
+  </div>
+
+  <footer>
+    <span>Baseline · 3 pull-ups · 15 push-ups · 104 kg</span>
+    <span id="savenote"></span>
+    <button id="reset" type="button">Reset all progress</button>
+  </footer>
+</div>
+
+<script>
+const AUG_START = 5, SEP_START = 1, TODAY = {m:8,d:19};
+const KEY = 'block01';
+
+const LIFTS = [
+  {id:'sq', name:'Back squat',    inc:5,   start:20, lower:true},
+  {id:'bp', name:'Bench press',   inc:2.5, start:20, lower:false},
+  {id:'dl', name:'Deadlift',      inc:5,   start:40, lower:true},
+  {id:'op', name:'Overhead press',inc:2.5, start:20, lower:false}
+];
+
+let state = {weights:{}, sessions:{}};
+LIFTS.forEach(l => state.weights[l.id] = l.start);
+
+/* ---------- schedule helpers ---------- */
+function dow(month,d){ return ((month===8?AUG_START:SEP_START) + d - 1) % 7; }
+function isGym(month,d){ const w=dow(month,d); return w===0||w===2||w===4; }
+function inBlock(month,d){ return month===9 || d>=19; }
+function phase(month,d){ return month===8 ? 1 : (d<=14 ? 2 : 3); }
+function key(month,d){ return month+'-'+d; }
+function label(month,d){ return d+' '+(month===8?'August':'September')+' 2026'; }
+
+function scheme(month,d){
+  const p = phase(month,d);
+  if (p===1) return {p:1, txt:'3 × 5', name:'Reset', ramp:null};
+  if (p===2) return d<=7 ? {p:2, txt:'3 × 5', name:'Load-in', ramp:null}
+                         : {p:2, txt:'4 × 4', name:'Load-in', ramp:null};
+  return {p:3, txt:'ramp to a top set of 1–2', name:'Pyramid', ramp:[[.55,10],[.70,8],[.80,5],[.90,3],[1,'1–2']]};
+}
+
+const round = w => Math.round(w*2)/2;
+
+/* ---------- storage ---------- */
+let persists = true;
+async function load(){
+  // 1. try the in-app storage API
+  try{
+    const r = await window.storage.get(KEY, false);
+    if (r && r.value){ state = JSON.parse(r.value); return; }
+  }catch(e){ /* not available here */ }
+  // 2. fall back to browser storage (works when the file is opened or hosted locally)
+  try{
+    const v = window.localStorage.getItem(KEY);
+    if (v) state = JSON.parse(v);
+  }catch(e){ /* neither available — session-only */ }
+}
+async function save(){
+  let ok = false;
+  try{
+    const r = await window.storage.set(KEY, JSON.stringify(state), false);
+    if (r) ok = true;
+  }catch(e){ /* fall through */ }
+  if (!ok){
+    try{ window.localStorage.setItem(KEY, JSON.stringify(state)); ok = true; }
+    catch(e){ ok = false; }
+  }
+  persists = ok;
+  flagSaveState();
+}
+function flagSaveState(){
+  const f = document.getElementById('savenote');
+  if (f) f.textContent = persists ? '' : 'Not saving — open this file from your own machine';
+}
+
+/* ---------- session state ---------- */
+function session(month,d){
+  const k = key(month,d);
+  if (!state.sessions[k]){
+    const s = {};
+    LIFTS.forEach(l => s[l.id] = {w: state.weights[l.id], done:false});
+    state.sessions[k] = s;
+  } else {
+    // keep un-ticked future sessions in sync with current working weights
+    LIFTS.forEach(l => {
+      if (!state.sessions[k][l.id].done) state.sessions[k][l.id].w = state.weights[l.id];
+    });
+  }
+  return state.sessions[k];
+}
+
+async function toggle(month,d,liftId){
+  const s = session(month,d);
+  const lift = LIFTS.find(l=>l.id===liftId);
+  if (!s[liftId].done){
+    s[liftId].done = true;
+    state.weights[liftId] = round(s[liftId].w + lift.inc);
+  } else {
+    s[liftId].done = false;
+    state.weights[liftId] = round(Math.max(lift.start, state.weights[liftId] - lift.inc));
+  }
+  await save();
+  render(month,d);
+}
+
+/* ---------- panel ---------- */
+let selected = null;
+
+function render(month,d){
+  selected = {m:month,d:d};
+  const panel = document.getElementById('panel');
+  const gym = isGym(month,d);
+  const w = dow(month,d);
+  let html = '<p class="dates">'+label(month,d)+'</p>';
+
+  if (!inBlock(month,d)){
+    html += '<h3>Before the block</h3><p class="sub">Block 01 starts Wednesday 19 August.</p>';
+  } else if (gym){
+    const sc = scheme(month,d);
+    const s = session(month,d);
+    html += '<h3>Gym · Full body</h3><p class="sub">Phase 0'+sc.p+' · '+sc.name+' — '+sc.txt+' on all four lifts.</p>';
+    LIFTS.forEach(l=>{
+      const st = s[l.id];
+      let ramp = '';
+      if (sc.ramp){
+        ramp = '<div class="ramp">' + sc.ramp.map(r=>round(st.w*r[0])+' kg × '+r[1]).join('  ·  ') + '</div>';
+      }
+      html += '<div class="lift'+(st.done?' is-done':'')+'">'+
+        '<div class="meta"><div class="nm">'+l.name+'</div>'+
+        '<div class="pr">'+sc.txt+(sc.ramp?' · top set':'')+'</div>'+ramp+'</div>'+
+        '<div class="wt"><input class="wtin" type="number" step="2.5" min="0" value="'+st.w+'" data-l="'+l.id+'" aria-label="'+l.name+' weight in kg"><small>kg</small></div>'+
+        '<button class="chk" type="button" aria-pressed="'+st.done+'" aria-label="Mark '+l.name+' complete" data-l="'+l.id+'">'+(st.done?'✓':'')+'</button>'+
+        '</div>';
+    });
+    if (sc.p===1){
+      html += '<p class="note"><strong>Reset weeks — keep the jumps honest.</strong> Each tick adds +5 kg to squat and deadlift, +2.5 kg to bench and press. Only tick if all sets moved clean; this is where technique gets built.</p>';
+    } else {
+      html += '<p class="note">Each tick adds <strong>+5 kg</strong> to squat and deadlift, <strong>+2.5 kg</strong> to bench and press for your next session. Untick to take it back.</p>';
+    }
+  } else if (w===6){
+    html += '<h3>Rest</h3><p class="sub">Nothing. You worked five days with your body this week — that is the load underneath all of this.</p>';
+  } else {
+    html += '<h3>Home · Light</h3><p class="sub">5–10 minutes, sub-fatiguing.</p>'+
+      '<div class="lift"><div class="meta"><div class="nm">Pull-ups</div><div class="pr">3 sets, stop 1–2 reps short of failure</div></div></div>'+
+      '<div class="lift"><div class="meta"><div class="nm">Push-ups</div><div class="pr">3 sets, stop 1–2 reps short of failure</div></div></div>'+
+      '<div class="lift"><div class="meta"><div class="nm">Mobility</div><div class="pr">Hips · shoulders · ankles — 5 min</div></div></div>'+
+      '<p class="note">No sets to failure, no soreness. This is blood flow and skill practice, not a workout.</p>';
+  }
+  panel.innerHTML = html;
+  panel.querySelectorAll('.chk').forEach(b=>{
+    b.addEventListener('click',()=>toggle(month,d,b.dataset.l));
+  });
+  panel.querySelectorAll('.wtin').forEach(inp=>{
+    inp.addEventListener('change', async ()=>{
+      const v = parseFloat(inp.value);
+      if (isNaN(v) || v < 0) return;
+      const s = session(month,d);
+      s[inp.dataset.l].w = round(v);
+      state.weights[inp.dataset.l] = round(v);
+      await save();
+    });
+  });
+  buildAll();
+}
+
+/* ---------- calendar ---------- */
+function buildMonth(id,days,start,month){
+  const grid = document.getElementById(id);
+  grid.innerHTML='';
+  for(let i=0;i<start;i++){
+    const e=document.createElement('div'); e.className='cell empty'; grid.appendChild(e);
+  }
+  for(let d=1;d<=days;d++){
+    const w=(start+d-1)%7, active=inBlock(month,d);
+    let cls='cell', lab='', el;
+    if(!active){ cls+=' rest'; }
+    else if(isGym(month,d)){
+      cls+=' gym p'+phase(month,d); lab='Gym';
+      const s=state.sessions[key(month,d)];
+      if(s && LIFTS.every(l=>s[l.id].done)) cls+=' doneMark';
+    }
+    else if(w===6){ cls+=' rest'; lab='Rest'; }
+    else { cls+=' home'; lab='Home'; }
+    if(month===TODAY.m && d===TODAY.d) cls+=' today';
+    if(selected && selected.m===month && selected.d===d) cls+=' sel';
+
+    if(active){
+      el=document.createElement('button'); el.type='button';
+      el.addEventListener('click',()=>render(month,d));
+    } else { el=document.createElement('div'); }
+    el.className=cls;
+    el.innerHTML='<span class="n">'+d+'</span><span class="t">'+lab+'</span>';
+    grid.appendChild(el);
+  }
+}
+function buildAll(){
+  buildMonth('aug',31,AUG_START,8);
+  buildMonth('sep',30,SEP_START,9);
+}
+
+document.getElementById('reset').addEventListener('click', async ()=>{
+  state = {weights:{}, sessions:{}};
+  LIFTS.forEach(l=>state.weights[l.id]=l.start);
+  await save();
+  render(TODAY.m,TODAY.d);
+});
+
+(async function init(){
+  await load();
+  render(TODAY.m, TODAY.d);
+})();
+</script>
+</body>
+</html>
