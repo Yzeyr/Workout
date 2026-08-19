@@ -29,8 +29,15 @@
   .eyebrow{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.2em;
     text-transform:uppercase;color:var(--zinc);margin:0 0 8px;}
   h1{font-family:"Barlow Condensed",sans-serif;font-weight:700;text-transform:uppercase;
-    font-size:clamp(32px,9.5vw,60px);line-height:.9;margin:0 0 16px;}
+    font-size:clamp(32px,9.5vw,60px);line-height:.9;margin:0 0 18px;}
   h1 em{font-style:normal;color:var(--chip-2);}
+
+  /* ---- tabs ---- */
+  .tabs{display:flex;gap:8px;margin-bottom:18px;}
+  .tab{flex:1;background:none;border:1px solid var(--line);color:var(--zinc);
+    padding:11px 10px;border-radius:2px;cursor:pointer;
+    font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;}
+  .tab.on{background:var(--chip-2);border-color:var(--chip-2);color:var(--plaster);}
 
   /* ---- consistency bar ---- */
   .consist{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;
@@ -89,16 +96,33 @@
   .wtin::-webkit-outer-spin-button,.wtin::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
   .wtin{-moz-appearance:textfield;}
   .unit{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--zinc);margin-left:3px;}
-  .btns{display:flex;gap:6px;flex:none;}
-  .chk,.fail{width:38px;height:38px;border:1px solid var(--zinc);background:none;
+  .fail{width:38px;height:38px;flex:none;border:1px solid var(--zinc);background:none;
     border-radius:2px;cursor:pointer;font-size:15px;line-height:1;}
-  .chk[aria-pressed="true"]{background:var(--chip-2);border-color:var(--chip-2);}
   .fail[aria-pressed="true"]{background:var(--oxide);border-color:var(--oxide);}
-  .lift.is-done .nm,.lift.is-done .wtin{opacity:.55;}
+  .lift.is-locked .nm,.lift.is-locked .wtin{opacity:.4;}
+
+  /* per-set boxes */
+  .setsrow{display:flex;gap:7px;flex-wrap:wrap;margin-top:11px;}
+  .setbox{display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:2px;min-width:54px;height:46px;padding:0 6px;border:1px solid var(--zinc);
+    background:none;border-radius:2px;cursor:pointer;color:var(--plaster);}
+  .setbox .sn{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:15px;line-height:1;}
+  .setbox .sw{font-family:"IBM Plex Mono",monospace;font-size:8.5px;color:var(--zinc);line-height:1;}
+  .setbox.on{background:var(--chip-2);border-color:var(--chip-2);}
+  .setbox.on .sw{color:#D7E6DF;}
+  .setbox:disabled{opacity:.35;cursor:default;}
+
   .plates{font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--chip-1);
-    margin-top:7px;letter-spacing:.04em;line-height:1.5;}
-  .warm{font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--zinc);
-    margin-top:5px;line-height:1.5;}
+    margin-top:9px;letter-spacing:.04em;line-height:1.5;}
+  details.ss{margin-top:9px;}
+  details.ss summary{list-style:none;cursor:pointer;
+    font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.05em;
+    color:var(--zinc);}
+  details.ss summary::-webkit-details-marker{display:none;}
+  details.ss summary::before{content:"+ ";color:var(--chip-1);}
+  details.ss[open] summary::before{content:"– ";}
+  details.ss ul{margin:7px 0 0;padding-left:16px;}
+  details.ss li{font-size:12.5px;line-height:1.6;color:#C6C2BA;margin-bottom:2px;}
   .prbadge{display:inline-block;background:var(--gold);color:var(--ink);
     font-family:"IBM Plex Mono",monospace;font-size:9px;font-weight:600;letter-spacing:.1em;
     padding:2px 5px;margin-left:6px;vertical-align:1px;}
@@ -175,6 +199,20 @@
   .rule p{margin:0 0 9px;font-size:14px;line-height:1.6;color:#CFCBC3;}
   .rule p:last-child{margin-bottom:0;}
 
+  /* ---- history ---- */
+  .hcard{border:1px solid var(--line);background:var(--panel);padding:15px 17px;
+    margin-bottom:10px;border-radius:2px;}
+  .hdate{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.13em;
+    text-transform:uppercase;color:var(--zinc);margin:0 0 9px;}
+  .hrow{display:flex;justify-content:space-between;gap:10px;padding:4px 0;
+    font-family:"IBM Plex Mono",monospace;font-size:13px;}
+  .hrow .hn{color:var(--plaster);font-weight:500;}
+  .hrow .hv{color:#BBD3C9;}
+  .hrow .hv.miss{color:var(--oxide);}
+  .hnote{font-size:13.5px;line-height:1.55;color:var(--zinc);margin:10px 0 0;
+    padding-top:10px;border-top:1px solid var(--line);font-style:italic;}
+  .hempty{font-size:14px;color:var(--zinc);line-height:1.6;}
+
   footer{padding-top:16px;border-top:1px solid var(--line);
     font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.1em;
     text-transform:uppercase;color:var(--zinc);}
@@ -193,52 +231,63 @@
   <p class="eyebrow">Block 01 · 19 Aug — 30 Sep 2026</p>
   <h1>Every number<br>starts at the <em>bar</em></h1>
 
-  <div class="consist">
-    <span class="big" id="cDone">0</span>
-    <span class="lbl">of <b id="cTotal">0</b> sessions logged so far</span>
-    <div class="track"><i id="cBar" style="width:0%"></i></div>
+  <div class="tabs">
+    <button class="tab on" id="tabToday" type="button">Train</button>
+    <button class="tab" id="tabHistory" type="button">History</button>
   </div>
 
-  <details class="tg">
-    <summary>Two-year targets</summary>
-    <div class="tgbody" id="targets"></div>
-  </details>
+  <div id="mainView">
 
-  <div class="scale">
-    <div class="s1">01 Reset<span>Empty bar</span></div>
-    <div class="s2">02 Load-in<span>First plates</span></div>
-    <div class="s3">03 Pyramid<span>Real weight</span></div>
+    <div class="consist">
+      <span class="big" id="cDone">0</span>
+      <span class="lbl">of <b id="cTotal">0</b> sessions logged so far</span>
+      <div class="track"><i id="cBar" style="width:0%"></i></div>
+    </div>
+
+    <details class="tg">
+      <summary>Two-year targets</summary>
+      <div class="tgbody" id="targets"></div>
+    </details>
+
+    <div class="scale">
+      <div class="s1">01 Reset<span>Empty bar</span></div>
+      <div class="s2">02 Load-in<span>First plates</span></div>
+      <div class="s3">03 Pyramid<span>Real weight</span></div>
+    </div>
+
+    <div id="panel" aria-live="polite"></div>
+
+    <div class="months">
+      <section>
+        <h2>August</h2>
+        <div class="dow"><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span></div>
+        <div class="grid" id="aug"></div>
+      </section>
+      <section>
+        <h2>September</h2>
+        <div class="dow"><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span></div>
+        <div class="grid" id="sep"></div>
+      </section>
+    </div>
+
+    <div class="legend">
+      <span><i style="background:var(--chip-2);border-color:var(--chip-2)"></i>Gym</span>
+      <span><i></i>Home</span>
+      <span><i style="opacity:.4"></i>Rest</span>
+      <span><i style="border-color:var(--oxide)"></i>Today</span>
+    </div>
+
+    <div class="rule">
+      <p class="lbl">Standing rules</p>
+      <p><strong>Tap each set as you finish it.</strong> Every set clean completes the lift and bumps next session's weight. The rest timer starts fresh on every tap — no need to uncheck and recheck.</p>
+      <p><strong>Missed a lift?</strong> Hit ✗ instead of ticking sets. Three misses on the same lift triggers an automatic 10% deload — that's the system working, not failure.</p>
+      <p><strong>Lower body override:</strong> if it feels off, that session reverts to light technique work regardless of phase.</p>
+      <p><strong>Home days:</strong> 5–10 min, sub-fatiguing. Sore the next day means you did too much.</p>
+    </div>
+
   </div>
 
-  <div id="panel" aria-live="polite"></div>
-
-  <div class="months">
-    <section>
-      <h2>August</h2>
-      <div class="dow"><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span></div>
-      <div class="grid" id="aug"></div>
-    </section>
-    <section>
-      <h2>September</h2>
-      <div class="dow"><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span></div>
-      <div class="grid" id="sep"></div>
-    </section>
-  </div>
-
-  <div class="legend">
-    <span><i style="background:var(--chip-2);border-color:var(--chip-2)"></i>Gym</span>
-    <span><i></i>Home</span>
-    <span><i style="opacity:.4"></i>Rest</span>
-    <span><i style="border-color:var(--oxide)"></i>Today</span>
-  </div>
-
-  <div class="rule">
-    <p class="lbl">Standing rules</p>
-    <p><strong>✓ means every set moved clean.</strong> If the last set was a grind or form broke, hit ✗ instead — the weight stays, nothing is lost. Ticking a set you didn't earn only lies to your future self.</p>
-    <p><strong>Three ✗ on the same lift triggers a deload:</strong> 10% off, build back up. That's not failure, that's the system working. One bad day is life; three is a pattern.</p>
-    <p><strong>Lower body override:</strong> if it feels off, that session reverts to light technique work regardless of phase.</p>
-    <p><strong>Home days:</strong> 5–10 min, sub-fatiguing. Sore the next day means you did too much.</p>
-  </div>
+  <div id="historyView" style="display:none"></div>
 
   <footer>
     <span>Baseline · 3 pull-ups · 15 push-ups · 104 kg · 184 cm</span>
@@ -261,7 +310,7 @@
 
 <script>
 /* ============ config ============ */
-const AUG_START=5, SEP_START=1, TODAY={m:8,d:19}, KEY='block01v2';
+const AUG_START=5, SEP_START=1, TODAY={m:8,d:19}, KEY='block01v3';
 const BAR=20, PLATES=[25,20,15,10,5,2.5,1.25];
 
 const LIFTS=[
@@ -275,6 +324,12 @@ const BODYWEIGHT=[
   {id:'po',name:'Push-ups',target:50},
   {id:'dp',name:'Dips',target:null}
 ];
+const SUPERSETS={
+  sq:['Ankle dorsiflexion rocks · 2 × 10 each side','Plank · 30–45s'],
+  bp:['Face pulls · 2 × 15','Band pull-aparts · 2 × 15'],
+  dl:['Hanging knee raises · 2 × 10','Farmer carry · 2 × 20m'],
+  op:['Pull-ups · easy sets, well short of failure','Band pull-aparts · 2 × 15']
+};
 
 let state={weights:{},fails:{},best:{},bwBest:{},sessions:{}};
 function freshState(){
@@ -296,17 +351,21 @@ const round=w=>Math.round(w*2)/2;
 
 function scheme(m,d){
   const p=phase(m,d);
-  if(p===1) return {p:1,name:'Reset',txt:'3 × 5',reps:5,ramp:null};
-  if(p===2) return d<=7 ? {p:2,name:'Load-in',txt:'3 × 5',reps:5,ramp:null}
-                        : {p:2,name:'Load-in',txt:'4 × 4',reps:4,ramp:null};
-  return {p:3,name:'Pyramid',txt:'ramp → top set of 2',reps:2,
-          ramp:[[.55,10],[.70,8],[.80,5],[.90,3],[1,'2']]};
+  if(p===1) return {p:1,name:'Reset',txt:'3 × 5',reps:5,sets:3,ramp:null};
+  if(p===2) return d<=7 ? {p:2,name:'Load-in',txt:'3 × 5',reps:5,sets:3,ramp:null}
+                        : {p:2,name:'Load-in',txt:'4 × 4',reps:4,sets:4,ramp:null};
+  return {p:3,name:'Pyramid',txt:'ramp → top set of 2',reps:2,sets:5,
+          ramp:[[.55,10],[.70,8],[.80,5],[.90,3],[1,2]]};
+}
+function setSpec(sc,w,idx){
+  if(sc.ramp){ const [pct,reps]=sc.ramp[idx]; return {w:loadable(round(w*pct)),reps}; }
+  return {w:w,reps:sc.reps};
 }
 
 /* ============ maths ============ */
 const e1rm=(w,r)=>Math.round(w*(1+r/30));           // Epley
 
-function loadable(t){                                // nearest achievable weight ≤ target
+function loadable(t){
   if(t<=BAR) return BAR;
   let side=(t-BAR)/2, used=0;
   PLATES.forEach(p=>{ while(side-used>=p-0.001) used+=p; });
@@ -322,6 +381,9 @@ function plateStr(t){
 function warmups(work){
   if(work<=BAR+5) return null;
   return [[.4,5],[.6,5],[.8,3]].map(r=>loadable(round(work*r[0]))+' kg × '+r[1]).join('  ·  ');
+}
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
 /* ============ storage ============ */
@@ -339,11 +401,13 @@ async function save(){
 }
 
 /* ============ session model ============ */
+function liftComplete(e){ return !!e && !!e.setsDone && e.setsDone.length>0 && e.setsDone.every(Boolean); }
+
 function session(m,d){
-  const k=key(m,d);
+  const k=key(m,d), sc=scheme(m,d), n=sc.sets;
   if(!state.sessions[k]){
     const s={bw:{},note:''};
-    LIFTS.forEach(l=>s[l.id]={w:state.weights[l.id],done:false,failed:false});
+    LIFTS.forEach(l=>s[l.id]={w:state.weights[l.id],setsDone:Array(n).fill(false),failed:false,pr:false});
     BODYWEIGHT.forEach(b=>s.bw[b.id]='');
     state.sessions[k]=s;
   }else{
@@ -351,8 +415,18 @@ function session(m,d){
     if(!s.bw){s.bw={};BODYWEIGHT.forEach(b=>s.bw[b.id]='');}
     if(s.note===undefined) s.note='';
     LIFTS.forEach(l=>{
-      if(!s[l.id]) s[l.id]={w:state.weights[l.id],done:false,failed:false};
-      if(!s[l.id].done&&!s[l.id].failed) s[l.id].w=state.weights[l.id];
+      let e=s[l.id];
+      if(!e){ e=s[l.id]={w:state.weights[l.id],setsDone:Array(n).fill(false),failed:false,pr:false}; }
+      if(!e.setsDone){                              // migrate from older single-checkbox model
+        const wasDone=e.done===true;
+        e.setsDone=Array(n).fill(wasDone);
+        delete e.done;
+      }
+      if(e.setsDone.length!==n){
+        const filled=e.setsDone.every(Boolean)&&e.setsDone.length>0;
+        e.setsDone=Array(n).fill(filled);
+      }
+      if(!liftComplete(e)&&!e.failed) e.w=state.weights[l.id];
     });
   }
   return state.sessions[k];
@@ -363,7 +437,7 @@ function lastDone(m,d,id){
     const [mm,dd]=k.split('-').map(Number), v=dv(mm,dd);
     if(v>=t) return;
     const e=state.sessions[k][id];
-    if(e&&e.done&&v>bk){bk=v;best=e.w;}
+    if(liftComplete(e)&&v>bk){bk=v;best=e.w;}
   });
   return best;
 }
@@ -381,29 +455,37 @@ function lastBW(m,d,id){
 /* ============ actions ============ */
 let deloadMsg={};
 
-async function markDone(m,d,id){
-  const s=session(m,d), lift=LIFTS.find(l=>l.id===id), sc=scheme(m,d);
-  if(s[id].done){
-    s[id].done=false;
-    state.weights[id]=round(Math.max(lift.start,state.weights[id]-lift.inc));
-  }else{
-    s[id].done=true; s[id].failed=false;
-    state.fails[id]=0; delete deloadMsg[id];
-    const est=e1rm(s[id].w,sc.reps);
-    if(est>(state.best[id]||0)){ state.best[id]=est; s[id].pr=true; } else { s[id].pr=false; }
-    state.weights[id]=round(s[id].w+lift.inc);
-    startRest(lift);
+async function toggleSet(m,d,liftId,idx){
+  const s=session(m,d), lift=LIFTS.find(l=>l.id===liftId), sc=scheme(m,d), e=s[liftId];
+  if(e.failed) return;
+  const wasComplete=liftComplete(e);
+  e.setsDone[idx]=!e.setsDone[idx];
+  const nowComplete=liftComplete(e);
+
+  if(!wasComplete&&nowComplete){
+    state.fails[liftId]=0; delete deloadMsg[liftId];
+    const topReps=sc.ramp?sc.ramp[sc.ramp.length-1][1]:sc.reps;
+    const est=e1rm(e.w,topReps);
+    if(est>(state.best[liftId]||0)){ state.best[liftId]=est; e.pr=true; } else e.pr=false;
+    state.weights[liftId]=round(e.w+lift.inc);
+  } else if(wasComplete&&!nowComplete){
+    state.weights[liftId]=round(Math.max(lift.start,state.weights[liftId]-lift.inc));
+    e.pr=false;
   }
+  if(e.setsDone[idx]) startRest(lift);
   await save(); render(m,d);
 }
+
 async function markFail(m,d,id){
-  const s=session(m,d), lift=LIFTS.find(l=>l.id===id);
-  if(s[id].failed){
-    s[id].failed=false;
+  const s=session(m,d), lift=LIFTS.find(l=>l.id===id), sc=scheme(m,d), e=s[id];
+  if(e.failed){
+    e.failed=false;
     state.fails[id]=Math.max(0,(state.fails[id]||0)-1);
     delete deloadMsg[id];
   }else{
-    s[id].failed=true; s[id].done=false; s[id].pr=false;
+    if(liftComplete(e)) state.weights[id]=round(Math.max(lift.start,state.weights[id]-lift.inc));
+    e.setsDone=Array(sc.sets).fill(false);
+    e.pr=false; e.failed=true;
     state.fails[id]=(state.fails[id]||0)+1;
     if(state.fails[id]>=3){
       const nw=Math.max(lift.start,loadable(round(state.weights[id]*0.9)));
@@ -445,7 +527,7 @@ function startRest(lift){
 document.getElementById('restAdd').onclick=()=>{ restLeft+=30; restEl.classList.remove('done'); restT.textContent=fmt(restLeft); };
 document.getElementById('restSkip').onclick=()=>{ clearInterval(restInt); restEl.classList.remove('on','done'); };
 
-/* ============ render ============ */
+/* ============ render: today ============ */
 let selected=null;
 
 function bwBlock(s,m,d){
@@ -455,7 +537,7 @@ function bwBlock(s,m,d){
     const cur=s.bw[b.id];
     const val=(cur!==''&&cur!==undefined)?cur:(last!==null?last:'');
     const best=state.bwBest[b.id]||0;
-    const isPR=(val!==''&&Number(val)>0&&Number(val)>=best&&best>0&&Number(val)>best);
+    const isPR=(val!==''&&Number(val)>0&&best>0&&Number(val)>best);
     let meta='3 sets, stop 1–2 short of failure';
     if(last!==null) meta+=' · last '+last;
     if(best>0) meta+=' · best '+best;
@@ -476,40 +558,49 @@ function render(m,d){
     h+='<h3>Before the block</h3><p class="sub">Block 01 starts Wednesday 19 August.</p>';
   } else if(isGym(m,d)){
     const sc=scheme(m,d), s=session(m,d);
-    h+='<h3>Gym · Full body</h3><p class="sub">Phase 0'+sc.p+' · '+sc.name+' — '+sc.txt+' on all four lifts.</p>';
+    h+='<h3>Gym · Full body</h3><p class="sub">Phase 0'+sc.p+' · '+sc.name+' — '+sc.txt+' on all four lifts. Tap each set as you finish it.</p>';
     LIFTS.forEach(l=>{
-      const st=s[l.id], last=lastDone(m,d,l.id), best=state.best[l.id]||0;
+      const e=s[l.id], last=lastDone(m,d,l.id), best=state.best[l.id]||0;
+      const complete=liftComplete(e);
       let meta=sc.txt;
       if(last!==null) meta+=' · last '+last+' kg';
-      const est=e1rm(st.w,sc.reps);
+      const topReps=sc.ramp?sc.ramp[sc.ramp.length-1][1]:sc.reps;
+      const est=e1rm(e.w,topReps);
       meta+=' · est 1RM '+est+' kg';
       if(best>0) meta+=' (best '+best+')';
       const fails=state.fails[l.id]||0;
-      if(fails>0&&!st.done) meta+=' · ✗'+fails+' of 3';
+      if(fails>0&&!complete) meta+=' · ✗'+fails+' of 3';
+
+      let setsRow='<div class="setsrow">';
+      for(let i=0;i<sc.sets;i++){
+        const spec=setSpec(sc,e.w,i), on=e.setsDone[i];
+        setsRow+='<button type="button" class="setbox'+(on?' on':'')+'" data-l="'+l.id+'" data-i="'+i+'" '+
+          'aria-pressed="'+on+'"'+(e.failed?' disabled':'')+'>'+
+          '<span class="sn">'+(on?'✓':(i+1))+'</span><span class="sw">'+spec.w+'×'+spec.reps+'</span></button>';
+      }
+      setsRow+='</div>';
 
       let extra='';
-      if(sc.ramp){
-        extra+='<div class="warm">'+sc.ramp.map(r=>loadable(round(st.w*r[0]))+' kg × '+r[1]).join('  ·  ')+'</div>';
-      }else{
-        const w=warmups(st.w);
-        if(w) extra+='<div class="warm">Warm-up: '+w+'</div>';
+      if(!sc.ramp){
+        const w=warmups(e.w);
+        if(w) extra+='<div class="pr">Warm-up: '+w+'</div>';
       }
-      extra+='<div class="plates">'+plateStr(st.w)+'</div>';
+      extra+='<div class="plates">'+(sc.ramp?'Top set: ':'')+plateStr(e.w)+'</div>';
+      extra+='<details class="ss"><summary>Superset options</summary><ul>'+
+        SUPERSETS[l.id].map(x=>'<li>'+x+'</li>').join('')+'</ul></details>';
 
-      h+='<div class="lift'+(st.done?' is-done':'')+'"><div class="lrow">'+
-         '<div class="meta"><div class="nm">'+l.name+(st.pr?'<span class="prbadge">PR</span>':'')+'</div>'+
+      h+='<div class="lift'+(e.failed?' is-locked':'')+'"><div class="lrow">'+
+         '<div class="meta"><div class="nm">'+l.name+(e.pr?'<span class="prbadge">PR</span>':'')+'</div>'+
          '<div class="pr">'+meta+'</div></div>'+
-         '<div><input class="wtin" type="number" step="2.5" min="0" value="'+st.w+'" data-l="'+l.id+'" aria-label="'+l.name+' kg"><span class="unit">kg</span></div>'+
-         '<div class="btns">'+
-           '<button class="chk" type="button" aria-pressed="'+st.done+'" data-l="'+l.id+'" aria-label="Clean">'+(st.done?'✓':'')+'</button>'+
-           '<button class="fail" type="button" aria-pressed="'+st.failed+'" data-f="'+l.id+'" aria-label="Missed">'+(st.failed?'✗':'')+'</button>'+
-         '</div></div>'+extra+'</div>';
+         '<div><input class="wtin" type="number" step="2.5" min="0" value="'+e.w+'" data-l="'+l.id+'" aria-label="'+l.name+' kg"><span class="unit">kg</span></div>'+
+         '<button class="fail" type="button" aria-pressed="'+e.failed+'" data-f="'+l.id+'" aria-label="Missed">'+(e.failed?'✗':'')+'</button>'+
+         '</div>'+setsRow+extra+'</div>';
       if(deloadMsg[l.id]) h+='<div class="deload"><b>Deload.</b> '+deloadMsg[l.id]+'</div>';
     });
     h+=bwBlock(s,m,d);
     h+='<p class="seclabel">Session note</p>'+
-       '<textarea class="note" placeholder="How it moved. Anything that hurt. Sleep, food, work that day.">'+(s.note||'')+'</textarea>';
-    h+='<p class="hint">✓ adds <b>+'+LIFTS[0].inc+' kg</b> lower / <b>+'+LIFTS[1].inc+' kg</b> upper next session. ✗ holds the weight. Three ✗ deloads it 10%.</p>';
+       '<textarea class="note" placeholder="How it moved. Anything that hurt. Sleep, food, work that day.">'+escapeHtml(s.note||'')+'</textarea>';
+    h+='<p class="hint">Every set clean adds <b>+'+LIFTS[0].inc+' kg</b> lower / <b>+'+LIFTS[1].inc+' kg</b> upper next session. ✗ holds the weight. Three ✗ deloads it 10%.</p>';
   } else if(dow(m,d)===6){
     h+='<h3>Rest</h3><p class="sub">Nothing. You worked five days with your body this week — that is the load underneath all of this.</p>';
   } else {
@@ -519,13 +610,13 @@ function render(m,d){
     h+='<div class="lift"><div class="lrow"><div class="meta"><div class="nm">Mobility</div>'+
        '<div class="pr">Hips · shoulders · ankles — 5 min</div></div></div></div>';
     h+='<p class="seclabel">Session note</p>'+
-       '<textarea class="note" placeholder="Anything worth remembering.">'+(s.note||'')+'</textarea>';
+       '<textarea class="note" placeholder="Anything worth remembering.">'+escapeHtml(s.note||'')+'</textarea>';
     h+='<p class="hint">No sets to failure, no soreness. Blood flow and skill practice, not a workout.</p>';
   }
 
   p.innerHTML=h;
 
-  p.querySelectorAll('.chk').forEach(b=>b.onclick=()=>markDone(m,d,b.dataset.l));
+  p.querySelectorAll('.setbox').forEach(b=>b.onclick=()=>toggleSet(m,d,b.dataset.l,Number(b.dataset.i)));
   p.querySelectorAll('.fail').forEach(b=>b.onclick=()=>markFail(m,d,b.dataset.f));
   p.querySelectorAll('.wtin').forEach(i=>i.onchange=async()=>{
     const v=parseFloat(i.value); if(isNaN(v)||v<0) return;
@@ -556,7 +647,7 @@ function buildMonth(id,days,start,m){
     else if(isGym(m,d)){
       cls+=' gym p'+phase(m,d); lab='Gym';
       const s=state.sessions[key(m,d)];
-      if(s&&LIFTS.every(l=>s[l.id]&&(s[l.id].done||s[l.id].failed))) cls+=' doneMark';
+      if(s&&LIFTS.every(l=>s[l.id]&&(liftComplete(s[l.id])||s[l.id].failed))) cls+=' doneMark';
     }
     else if(w===6){ cls+=' rest-d'; lab='Rest'; }
     else { cls+=' home'; lab='Home'; }
@@ -580,7 +671,7 @@ function stats(){
       if(dv(m,d)>dv(TODAY.m,TODAY.d)) continue;
       sched++;
       const s=state.sessions[key(m,d)];
-      if(s&&LIFTS.every(l=>s[l.id]&&(s[l.id].done||s[l.id].failed))) done++;
+      if(s&&LIFTS.every(l=>s[l.id]&&(liftComplete(s[l.id])||s[l.id].failed))) done++;
     }
   });
   document.getElementById('cDone').textContent=done;
@@ -604,6 +695,63 @@ function stats(){
   h+='<p class="pr" style="margin-top:12px">Barbell bars track best estimated 1RM (Epley), not a tested max.</p>';
   t.innerHTML=h;
 }
+
+/* ============ history ============ */
+function renderHistory(){
+  const el=document.getElementById('historyView');
+  const keys=Object.keys(state.sessions).filter(k=>{
+    const s=state.sessions[k];
+    const anyLift=LIFTS.some(l=>s[l.id]&&(liftComplete(s[l.id])||s[l.id].failed));
+    const anyBW=BODYWEIGHT.some(b=>s.bw&&s.bw[b.id]!==''&&s.bw[b.id]!==undefined);
+    const anyNote=s.note&&s.note.trim()!=='';
+    return anyLift||anyBW||anyNote;
+  });
+  if(!keys.length){
+    el.innerHTML='<p class="hempty">Nothing logged yet. Your first session shows up here the moment you tick a set.</p>';
+    return;
+  }
+  keys.sort((a,b)=>{
+    const [am,ad]=a.split('-').map(Number), [bm,bd]=b.split('-').map(Number);
+    return dv(bm,bd)-dv(am,ad);
+  });
+  let h='';
+  keys.forEach(k=>{
+    const [m,d]=k.split('-').map(Number), s=state.sessions[k], gym=isGym(m,d);
+    h+='<div class="hcard"><p class="hdate">'+label(m,d)+' · '+(gym?'Gym':'Home')+'</p>';
+    if(gym){
+      LIFTS.forEach(l=>{
+        const e=s[l.id]; if(!e) return;
+        if(liftComplete(e)){
+          h+='<div class="hrow"><span class="hn">'+l.name+'</span><span class="hv">'+e.w+' kg'+(e.pr?' <span class="prbadge">PR</span>':'')+'</span></div>';
+        } else if(e.failed){
+          h+='<div class="hrow"><span class="hn">'+l.name+'</span><span class="hv miss">missed at '+e.w+' kg</span></div>';
+        }
+      });
+    }
+    BODYWEIGHT.forEach(b=>{
+      const v=s.bw&&s.bw[b.id];
+      if(v!==''&&v!==undefined) h+='<div class="hrow"><span class="hn">'+b.name+'</span><span class="hv">'+v+' reps</span></div>';
+    });
+    if(s.note&&s.note.trim()) h+='<p class="hnote">"'+escapeHtml(s.note.trim())+'"</p>';
+    h+='</div>';
+  });
+  el.innerHTML=h;
+}
+
+/* ============ tabs ============ */
+document.getElementById('tabToday').onclick=()=>{
+  document.getElementById('mainView').style.display='';
+  document.getElementById('historyView').style.display='none';
+  document.getElementById('tabToday').classList.add('on');
+  document.getElementById('tabHistory').classList.remove('on');
+};
+document.getElementById('tabHistory').onclick=()=>{
+  document.getElementById('mainView').style.display='none';
+  document.getElementById('historyView').style.display='';
+  document.getElementById('tabToday').classList.remove('on');
+  document.getElementById('tabHistory').classList.add('on');
+  renderHistory();
+};
 
 /* ============ backup ============ */
 document.getElementById('export').onclick=()=>{
