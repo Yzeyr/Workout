@@ -71,6 +71,8 @@
     text-transform:uppercase;letter-spacing:.02em;color:var(--plaster);}
   .tgbar{height:4px;background:rgba(232,228,220,.1);margin-top:6px;}
   .tgbar i{display:block;height:100%;background:var(--chip-1);}
+  .tgbar.time i{background:var(--zinc);}
+  .tgbar.time{margin-bottom:14px;}
 
   /* ---- phase scale ---- */
   .scale{display:flex;margin:0 0 26px;border:1px solid var(--line);}
@@ -1029,6 +1031,14 @@ function stats(block){
 
   const t=document.getElementById('targets');
   let h='';
+  const twStart=state.blocks[0].start;
+  const twEndD=parseISO(twStart); twEndD.setFullYear(twEndD.getFullYear()+2);
+  const twEnd=isoOf(twEndD);
+  const totalDays=Math.round((twEndD-parseISO(twStart))/86400000);
+  const elapsedDays=Math.max(0,Math.min(totalDays,Math.round((parseISO(todayISO())-parseISO(twStart))/86400000)));
+  const timePct=totalDays?Math.round(elapsedDays/totalDays*100):0;
+  h+='<div class="tgrow"><div class="tgtop"><b>Time</b><span>'+timePct+'% · through '+fmtLabel(twEnd)+'</span></div>'+
+     '<div class="tgbar time"><i style="width:'+timePct+'%"></i></div></div>';
   LIFT_IDS.forEach(id=>{
     const def=LIFT_DEFS[id], curBest=state.best[id]||0, base=state.blocks[0].lifts[id].startWeight;
     const pct=Math.min(100,Math.round(Math.max(0,curBest-base)/(def.target-base)*100));
