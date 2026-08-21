@@ -295,6 +295,9 @@
     font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.06em;
     text-transform:uppercase;color:var(--zinc);}
   .rngToggle input{accent-color:var(--chip-2);width:14px;height:14px;}
+  .backupNote{display:none;font-size:12.5px;line-height:1.5;color:var(--gold);
+    margin-top:14px;padding:10px 12px;border:1px solid rgba(201,162,39,.35);border-radius:2px;}
+  .backupNote.show{display:block;}
 
   /* ---- body tab ---- */
   .bodyWrap{display:flex;flex-direction:column;align-items:center;gap:20px;margin-bottom:8px;}
@@ -513,6 +516,7 @@
   <footer>
     <span id="savenote"></span>
     <label class="rngToggle"><input type="checkbox" id="randomTips" checked>Random rest-time exercise picks</label>
+    <p class="backupNote" id="backupNote"></p>
     <div class="fbtns">
       <button id="export" type="button">Export backup</button>
       <button id="importBtn" type="button">Import backup</button>
@@ -1627,26 +1631,46 @@ TABS.forEach(t=>{
 });
 
 /* ============ backup ============ */
-document.getElementById('export').onclick=()=>{
+const BACKUP_REMIND_DAYS=14;
+function daysSince(iso){ return Math.floor((parseISO(todayISO())-parseISO(iso))/86400000); }
+// Anchors on the last export if there's ever been one, otherwise the earliest logged
+// session — so a brand-new install with one day of data doesn't nag immediately.
+function shouldRemindBackup(){
+  const keys=Object.keys(state.sessions);
+  if(!keys.length) return false;
+  const anchor=state.lastExportAt||keys.sort()[0];
+  return daysSince(anchor)>=BACKUP_REMIND_DAYS;
+}
+function updateBackupNote(){
+  const el=document.getElementById('backupNote');
+  if(shouldRemindBackup()){
+    const anchor=state.lastExportAt||Object.keys(state.sessions).sort()[0];
+    el.textContent="It's been "+daysSince(anchor)+' days since your last backup. Tap "Export backup" below and save the file to iCloud Drive (not "On My iPhone") so it actually gets backed up.';
+    el.classList.add('show');
+  }else el.classList.remove('show');
+}
+document.getElementById('export').onclick=async()=>{
   const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
   a.download='workout-backup-'+new Date().toISOString().slice(0,10)+'.json';
   a.click(); URL.revokeObjectURL(a.href);
+  state.lastExportAt=todayISO();
+  await save(); updateBackupNote();
 };
 document.getElementById('importBtn').onclick=()=>document.getElementById('importFile').click();
 document.getElementById('importFile').onchange=e=>{
   const f=e.target.files[0]; if(!f) return;
   const r=new FileReader();
   r.onload=async()=>{
-    try{ state=JSON.parse(r.result); ensureShape(); await save(); render(todayISO()); }
+    try{ state=JSON.parse(r.result); ensureShape(); await save(); render(todayISO()); updateBackupNote(); }
     catch(err){ alert('That file could not be read.'); }
   };
   r.readAsText(f);
 };
 document.getElementById('danger').onclick=async()=>{
   if(!confirm('Delete all logged sessions and progress? This cannot be undone.')) return;
-  freshState(); deloadMsg={}; await save(); render(todayISO());
+  freshState(); deloadMsg={}; await save(); render(todayISO()); updateBackupNote();
 };
 
 /* ============ init ============ */
@@ -1657,6 +1681,7 @@ document.getElementById('danger').onclick=async()=>{
   const rngBox=document.getElementById('randomTips');
   rngBox.checked=state.randomTips;
   rngBox.onchange=async()=>{ state.randomTips=rngBox.checked; await save(); };
+  updateBackupNote();
 
   /* ---- update banner ---- */
   if('serviceWorker' in navigator){
