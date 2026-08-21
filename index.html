@@ -251,6 +251,9 @@
   .complete .hrow{font-size:13px;}
   .cnext{font-size:12.5px;color:var(--zinc);margin-top:10px;padding-top:10px;
     border-top:1px solid var(--line);}
+  .bonus{font-size:13px;color:var(--plaster);margin-top:10px;padding-top:10px;
+    border-top:1px solid var(--line);}
+  .bonus b{color:var(--gold);}
 
   /* ---- next-block proposal ---- */
   .propose{border:1px solid var(--gold);padding:18px;margin-bottom:22px;}
@@ -574,6 +577,12 @@ const ACCESSORY_EXERCISES={
 };
 const ACCESSORY_TAGS=Object.keys(ACCESSORY_EXERCISES);
 function accessoriesFor(tags){ return tags.flatMap(t=>ACCESSORY_EXERCISES[t]||[]); }
+// One true random pick off the whole catalog (not just a lift's own tags) — a session's
+// bonus round is meant to be a surprise, not a repeat of what the superset lists already show.
+function pickRandomExercise(){
+  const pool=accessoriesFor(ACCESSORY_TAGS);
+  return pool[Math.floor(Math.random()*pool.length)];
+}
 // Stable per day (doesn't reshuffle on every re-render), rotates by date so it isn't the
 // same two muscle groups every single day.
 function extraPicksFor(iso){
@@ -874,6 +883,9 @@ async function toggleSet(iso,liftId,idx){
     e.pr=false;
   }
   if(e.setsDone[idx]) startRest(def);
+  // Rolled once, the moment the session first goes 4/4 — stored on the session itself so
+  // it stays put on every later view instead of re-rolling on each re-render.
+  if(!s.bonusExercise&&LIFT_IDS.every(id=>liftComplete(s[id]))) s.bonusExercise=pickRandomExercise();
   await save(); render(iso);
 }
 
@@ -1065,7 +1077,9 @@ function renderDay(iso,block){
       });
       h+='<div class="complete"><p class="clabel">Session complete</p>'+
          '<p class="csub">4 / 4 lifts completed'+(prCount?' · '+prCount+' new PR'+(prCount>1?'s':''):'')+'</p>'+
-         rows+'<p class="cnext">Next session is ready.</p></div>';
+         rows+
+         (s.bonusExercise?'<p class="bonus">🎲 Bonus round: <b>'+s.bonusExercise+'</b></p>':'')+
+         '<p class="cnext">Next session is ready.</p></div>';
       h+=extraTimeBlock(iso);
     }
     h+=bwBlock(s,iso);
