@@ -19,6 +19,7 @@
     --plaster:#E8E4DC; --zinc:#8D949B;
     --chip-1:#9FB2A6; --chip-2:#4E7A6E; --chip-3:#1F4C46;
     --oxide:#B5432B; --gold:#C9A227;
+    --steel:#5E7A93; --clay:#8C5A3C;
     --line:rgba(232,228,220,.16);
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
@@ -392,10 +393,17 @@
         <path class="limb" d="M108,214 L115,364"/>
         <path class="sil" d="M62,86 C62,68 82,58 100,58 C118,58 138,68 138,86 L146,196 L118,196 L112,214 L88,214 L82,196 L54,196 Z"/>
         <circle class="sil" cx="100" cy="34" r="24"/>
-        <circle class="pt" data-attr-pt="pulse" cx="100" cy="34" r="4" fill="var(--oxide)"/>
-        <circle class="pt" data-attr-pt="weight" cx="100" cy="130" r="4" fill="var(--chip-2)"/>
-        <circle class="pt" data-attr-pt="biceps" cx="60" cy="120" r="4" fill="var(--chip-1)"/>
-        <circle class="pt" data-attr-pt="waist" cx="100" cy="196" r="4" fill="var(--gold)"/>
+        <!-- Rough placeholder positions — will be re-placed once the silhouette itself is redrawn. -->
+        <circle class="pt" data-attr-pt="pulse" cx="100" cy="34" r="3.5" fill="var(--oxide)"/>
+        <circle class="pt" data-attr-pt="weight" cx="100" cy="140" r="3.5" fill="var(--chip-2)"/>
+        <circle class="pt" data-attr-pt="neck" cx="100" cy="68" r="3.5" fill="var(--gold)"/>
+        <circle class="pt" data-attr-pt="chest" cx="100" cy="98" r="3.5" fill="var(--steel)"/>
+        <circle class="pt" data-attr-pt="shoulders" cx="72" cy="84" r="3.5" fill="var(--steel)"/>
+        <circle class="pt" data-attr-pt="biceps" cx="55" cy="118" r="3.5" fill="var(--chip-1)"/>
+        <circle class="pt" data-attr-pt="forearm" cx="45" cy="165" r="3.5" fill="var(--chip-1)"/>
+        <circle class="pt" data-attr-pt="waist" cx="100" cy="196" r="3.5" fill="var(--clay)"/>
+        <circle class="pt" data-attr-pt="thighs" cx="92" cy="255" r="3.5" fill="var(--chip-3)"/>
+        <circle class="pt" data-attr-pt="calves" cx="88" cy="335" r="3.5" fill="var(--chip-3)"/>
       </svg>
       <div class="attrGrid" id="attrGrid"></div>
     </div>
@@ -482,11 +490,19 @@ const BODYWEIGHT=[
   {id:'po',name:'Push-ups',target:50},
   {id:'dp',name:'Dips',target:null}
 ];
+// Pure tracking, no targets — unlike the barbell lifts, only the user knows what
+// they're actually aiming for on each of these, so no target field here on purpose.
 const ATTR_DEFS=[
-  {id:'pulse',  name:'Resting pulse', unit:'bpm', color:'var(--oxide)'},
-  {id:'weight', name:'Weight',        unit:'kg',  color:'var(--chip-2)'},
-  {id:'biceps', name:'Biceps',        unit:'cm',  color:'var(--chip-1)'},
-  {id:'waist',  name:'Waist',         unit:'cm',  color:'var(--gold)'}
+  {id:'pulse',     name:'Resting pulse', unit:'bpm', color:'var(--oxide)'},
+  {id:'weight',    name:'Weight',        unit:'kg',  color:'var(--chip-2)'},
+  {id:'neck',      name:'Neck',          unit:'cm',  color:'var(--gold)'},
+  {id:'chest',     name:'Chest',         unit:'cm',  color:'var(--steel)'},
+  {id:'shoulders', name:'Shoulders',     unit:'cm',  color:'var(--steel)'},
+  {id:'biceps',    name:'Biceps',        unit:'cm',  color:'var(--chip-1)'},
+  {id:'forearm',   name:'Forearm',       unit:'cm',  color:'var(--chip-1)'},
+  {id:'waist',     name:'Waist',         unit:'cm',  color:'var(--clay)'},
+  {id:'thighs',    name:'Thighs',        unit:'cm',  color:'var(--chip-3)'},
+  {id:'calves',    name:'Calves',        unit:'cm',  color:'var(--chip-3)'}
 ];
 const CARDIO_TYPES=[
   {id:'run',name:'Run'},{id:'bike',name:'Bike'},{id:'row',name:'Row'},{id:'swim',name:'Swim'}
