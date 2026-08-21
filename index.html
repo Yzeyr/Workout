@@ -313,6 +313,12 @@
   .recCard .rn{font-family:"IBM Plex Mono",monospace;font-size:9px;letter-spacing:.08em;
     text-transform:uppercase;color:var(--zinc);}
   .recCard .rv{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:18px;margin-top:2px;}
+  .libGroup{margin-bottom:16px;}
+  .libGroup:last-of-type{margin-bottom:0;}
+  .libHead{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.12em;
+    text-transform:uppercase;margin:0 0 5px;}
+  .libGroup ul{margin:0;padding-left:16px;}
+  .libGroup li{font-size:12.5px;line-height:1.6;color:#C6C2BA;margin-bottom:1px;}
 
   /* ---- history: highlights ---- */
   .hlGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:26px;}
@@ -467,6 +473,11 @@
     </div>
     <p class="seclabel">Personal records</p>
     <div class="recordsGrid" id="recordsGrid"></div>
+
+    <details class="tg" style="margin-top:26px">
+      <summary>Exercise library</summary>
+      <div class="tgbody" id="exerciseLib"></div>
+    </details>
   </div>
 
   <div id="cardioView" style="display:none">
@@ -1510,6 +1521,15 @@ function renderRecords(){
   });
   g.innerHTML=h;
 }
+function renderExerciseLibrary(){
+  const el=document.getElementById('exerciseLib');
+  const colorFor=tag=>(ATTR_DEFS.find(a=>a.id===tag)||{}).color||'var(--zinc)';
+  const label=tag=>tag.charAt(0).toUpperCase()+tag.slice(1);
+  el.innerHTML=ACCESSORY_TAGS.map(tag=>
+    '<div class="libGroup"><p class="libHead" style="color:'+colorFor(tag)+'">'+label(tag)+'</p>'+
+    '<ul>'+ACCESSORY_EXERCISES[tag].map(x=>'<li>'+x+'</li>').join('')+'</ul></div>'
+  ).join('')+'<p class="pr" style="margin-top:4px">Reference only — these show up as superset options and rest-time picks, but nothing here is logged.</p>';
+}
 
 /* ============ cardio ============ */
 function bestPace(type){
@@ -1566,7 +1586,7 @@ document.getElementById('cAdd').onclick=async()=>{
 const TABS=[
   {btn:'tabToday',   view:'mainView',    onShow:()=>{}},
   {btn:'tabHistory', view:'historyView', onShow:renderHistory},
-  {btn:'tabBody',    view:'bodyView',    onShow:()=>{renderAttrs();renderRecords();}},
+  {btn:'tabBody',    view:'bodyView',    onShow:()=>{renderAttrs();renderRecords();renderExerciseLibrary();}},
   {btn:'tabCardio',  view:'cardioView',  onShow:renderCardio}
 ];
 TABS.forEach(t=>{
