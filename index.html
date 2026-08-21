@@ -251,9 +251,12 @@
   .complete .hrow{font-size:13px;}
   .cnext{font-size:12.5px;color:var(--zinc);margin-top:10px;padding-top:10px;
     border-top:1px solid var(--line);}
-  .bonus{font-size:13px;color:var(--plaster);margin-top:10px;padding-top:10px;
-    border-top:1px solid var(--line);}
+  .bonus{display:block;width:100%;background:none;border:none;border-top:1px solid var(--line);
+    text-align:left;font:inherit;font-size:13px;color:var(--plaster);margin-top:10px;
+    padding:10px 0 0;cursor:pointer;}
   .bonus b{color:var(--gold);}
+  .bonus .rerollHint{display:block;font-family:"IBM Plex Mono",monospace;font-size:9.5px;
+    letter-spacing:.06em;text-transform:uppercase;color:var(--zinc);margin-top:4px;}
 
   /* ---- next-block proposal ---- */
   .propose{border:1px solid var(--gold);padding:18px;margin-bottom:22px;}
@@ -579,9 +582,12 @@ const ACCESSORY_TAGS=Object.keys(ACCESSORY_EXERCISES);
 function accessoriesFor(tags){ return tags.flatMap(t=>ACCESSORY_EXERCISES[t]||[]); }
 // One true random pick off the whole catalog (not just a lift's own tags) — a session's
 // bonus round is meant to be a surprise, not a repeat of what the superset lists already show.
-function pickRandomExercise(){
+function pickRandomExercise(exclude){
   const pool=accessoriesFor(ACCESSORY_TAGS);
-  return pool[Math.floor(Math.random()*pool.length)];
+  if(pool.length<=1) return pool[0];
+  let pick;
+  do{ pick=pool[Math.floor(Math.random()*pool.length)]; }while(pick===exclude);
+  return pick;
 }
 // Stable per day (doesn't reshuffle on every re-render), rotates by date so it isn't the
 // same two muscle groups every single day.
@@ -1078,7 +1084,8 @@ function renderDay(iso,block){
       h+='<div class="complete"><p class="clabel">Session complete</p>'+
          '<p class="csub">4 / 4 lifts completed'+(prCount?' · '+prCount+' new PR'+(prCount>1?'s':''):'')+'</p>'+
          rows+
-         (s.bonusExercise?'<p class="bonus">🎲 Bonus round: <b>'+s.bonusExercise+'</b></p>':'')+
+         (s.bonusExercise?'<button type="button" class="bonus" id="rerollBonus">🎲 Bonus round: <b>'+s.bonusExercise+
+           '</b><span class="rerollHint">↻ tap for another</span></button>':'')+
          '<p class="cnext">Next session is ready.</p></div>';
       h+=extraTimeBlock(iso);
     }
@@ -1104,6 +1111,12 @@ function renderDay(iso,block){
 
   p.querySelectorAll('.setbox').forEach(b=>b.onclick=()=>toggleSet(iso,b.dataset.l,Number(b.dataset.i)));
   p.querySelectorAll('.fail').forEach(b=>b.onclick=()=>markFail(iso,b.dataset.f));
+  const rerollBtn=document.getElementById('rerollBonus');
+  if(rerollBtn) rerollBtn.onclick=async()=>{
+    const s=session(iso,block);
+    s.bonusExercise=pickRandomExercise(s.bonusExercise);
+    await save(); render(iso);
+  };
   p.querySelectorAll('.wtin').forEach(i=>i.onchange=async()=>{
     const v=parseNum(i.value); if(isNaN(v)||v<0) return;
     const s=session(iso,block); s[i.dataset.l].w=round(v);
