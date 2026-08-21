@@ -164,7 +164,7 @@
   #rest{position:fixed;left:0;right:0;bottom:0;z-index:40;display:none;
     background:var(--chip-3);border-top:1px solid var(--chip-2);
     padding:12px 16px calc(12px + env(safe-area-inset-bottom));
-    align-items:center;gap:14px;}
+    align-items:center;gap:14px;flex-wrap:wrap;}
   #rest.on{display:flex;}
   #rest .t{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:32px;
     line-height:1;min-width:78px;letter-spacing:.02em;}
@@ -174,6 +174,10 @@
     padding:8px 11px;font-family:"IBM Plex Mono",monospace;font-size:10px;
     letter-spacing:.1em;text-transform:uppercase;cursor:pointer;}
   #rest.done{background:var(--oxide);border-top-color:var(--oxide);}
+  #rest .tip{flex-basis:100%;font-family:"IBM Plex Mono",monospace;font-size:11.5px;
+    color:var(--plaster);border-top:1px solid rgba(232,228,220,.18);padding-top:9px;}
+  #rest .tip:empty{display:none;}
+  #rest .tip b{color:var(--chip-1);font-weight:600;}
 
   /* ---- update banner ---- */
   #updateBar{position:fixed;left:0;right:0;top:0;z-index:50;display:none;
@@ -501,6 +505,7 @@
   <span class="l" id="restL">Rest</span>
   <button id="restAdd" type="button">+30s</button>
   <button id="restSkip" type="button">Skip</button>
+  <span class="tip" id="restTip"></span>
 </div>
 
 <script>
@@ -883,19 +888,28 @@ async function markFail(iso,id){
 
 /* ============ rest timer ============ */
 let restInt=null, restLeft=0;
-const restEl=document.getElementById('rest'), restT=document.getElementById('restT'), restL=document.getElementById('restL');
+const restEl=document.getElementById('rest'), restT=document.getElementById('restT'), restL=document.getElementById('restL'), restTip=document.getElementById('restTip');
+// In-memory only, not persisted — just enough to rotate through a lift's superset pool
+// instead of showing the identical exercise every rest. Resets on reload; that's fine.
+let restTipIdx={};
 function fmt(s){ return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
 function startRest(lift){
   clearInterval(restInt);
   restLeft=lift.rest; restEl.classList.add('on'); restEl.classList.remove('done');
   restL.textContent='Rest · '+lift.name;
   restT.textContent=fmt(restLeft);
+  const pool=accessoriesFor(lift.supersetTags||[]);
+  if(pool.length){
+    const idx=restTipIdx[lift.name]||0;
+    restTip.innerHTML='Try: <b>'+pool[idx%pool.length]+'</b>';
+    restTipIdx[lift.name]=idx+1;
+  } else restTip.textContent='';
   restInt=setInterval(()=>{
     restLeft--;
     restT.textContent=fmt(Math.max(0,restLeft));
     if(restLeft<=0){
       clearInterval(restInt);
-      restEl.classList.add('done'); restL.textContent='Go';
+      restEl.classList.add('done'); restL.textContent='Go'; restTip.textContent='';
       if(navigator.vibrate) navigator.vibrate([220,90,220]);
       try{
         const c=new (window.AudioContext||window.webkitAudioContext)();
