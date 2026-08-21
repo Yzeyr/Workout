@@ -36,10 +36,10 @@
   h1 em{font-style:normal;color:var(--chip-2);}
 
   /* ---- tabs ---- */
-  .tabs{display:flex;gap:8px;margin-bottom:18px;}
+  .tabs{display:flex;gap:6px;margin-bottom:18px;}
   .tab{flex:1;background:none;border:1px solid var(--line);color:var(--zinc);
-    padding:11px 10px;border-radius:2px;cursor:pointer;
-    font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;}
+    padding:11px 4px;border-radius:2px;cursor:pointer;
+    font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;}
   .tab.on{background:var(--chip-2);border-color:var(--chip-2);color:var(--plaster);}
 
   /* ---- consistency bar ---- */
@@ -277,6 +277,50 @@
   .fbtns button:hover{color:var(--plaster);border-color:var(--zinc);}
   #danger:hover{color:var(--oxide);border-color:var(--oxide);}
   #savenote{display:block;margin-top:10px;color:var(--oxide);}
+
+  /* ---- body tab ---- */
+  .bodyWrap{display:flex;flex-direction:column;align-items:center;gap:20px;margin-bottom:8px;}
+  .silhouette{width:100%;max-width:190px;height:auto;}
+  .silhouette .sil{fill:var(--panel2);stroke:var(--line);stroke-width:2;}
+  .silhouette .limb{fill:none;stroke:var(--line);stroke-width:15;stroke-linecap:round;}
+  .silhouette .pt{stroke:var(--ink);stroke-width:2;}
+  .attrGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;margin-bottom:28px;}
+  .attrCard{border:1px solid var(--line);border-left-width:3px;padding:12px 13px;border-radius:2px;}
+  .attrCard .an{font-family:"IBM Plex Mono",monospace;font-size:9.5px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--zinc);}
+  .attrCard .av{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:25px;margin-top:3px;line-height:1;}
+  .attrCard .au{font-size:11px;color:var(--zinc);margin-left:3px;}
+  .attrCard .ad{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--chip-1);margin-top:5px;}
+  .attrCard .ain{display:flex;gap:5px;margin-top:10px;}
+  .attrCard .ain input{width:0;flex:1;background:var(--panel2);border:1px solid var(--line);color:var(--plaster);
+    font-family:"IBM Plex Mono",monospace;font-size:12.5px;padding:6px 7px;border-radius:2px;}
+  .attrCard .ain button{background:var(--chip-2);color:var(--plaster);border:none;border-radius:2px;
+    padding:6px 10px;cursor:pointer;font-family:"IBM Plex Mono",monospace;font-size:10.5px;text-transform:uppercase;}
+  .recordsGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;}
+  .recCard{border:1px solid var(--line);padding:10px 12px;border-radius:2px;}
+  .recCard .rn{font-family:"IBM Plex Mono",monospace;font-size:9px;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--zinc);}
+  .recCard .rv{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:18px;margin-top:2px;}
+
+  /* ---- cardio tab ---- */
+  .cardioForm{border:1px solid var(--line);background:var(--panel);padding:16px;margin-bottom:24px;}
+  .cardioForm .crow{display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap;}
+  .cardioForm label{display:flex;flex-direction:column;gap:5px;flex:1;min-width:110px;
+    font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--zinc);}
+  .cardioForm select,.cardioForm input{background:var(--panel2);border:1px solid var(--line);color:var(--plaster);
+    font-family:"IBM Plex Mono",monospace;font-size:13px;padding:8px;border-radius:2px;}
+  .cardioForm textarea{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--plaster);
+    font-family:"IBM Plex Sans",sans-serif;font-size:13px;padding:8px 9px;border-radius:2px;
+    resize:vertical;min-height:44px;margin-bottom:10px;}
+  .cardioForm button{width:100%;background:var(--gold);color:var(--ink);border:none;border-radius:2px;
+    padding:11px;cursor:pointer;font-family:"IBM Plex Mono",monospace;font-size:11px;
+    letter-spacing:.1em;text-transform:uppercase;font-weight:600;}
+  .hcard .delrow{margin-top:10px;}
+  .delbtn{background:none;border:1px solid var(--zinc);color:var(--zinc);border-radius:2px;
+    padding:5px 10px;cursor:pointer;font-family:"IBM Plex Mono",monospace;font-size:9.5px;
+    letter-spacing:.08em;text-transform:uppercase;}
+  .delbtn:hover{color:var(--oxide);border-color:var(--oxide);}
 </style>
 </head>
 <body>
@@ -292,6 +336,8 @@
   <div class="tabs">
     <button class="tab on" id="tabToday" type="button">Train</button>
     <button class="tab" id="tabHistory" type="button">History</button>
+    <button class="tab" id="tabBody" type="button">Body</button>
+    <button class="tab" id="tabCardio" type="button">Cardio</button>
   </div>
 
   <div id="mainView">
@@ -337,8 +383,51 @@
 
   <div id="historyView" style="display:none"></div>
 
+  <div id="bodyView" style="display:none">
+    <div class="bodyWrap">
+      <svg class="silhouette" viewBox="0 0 200 380" xmlns="http://www.w3.org/2000/svg">
+        <path class="limb" d="M62,90 L42,196"/>
+        <path class="limb" d="M138,90 L158,196"/>
+        <path class="limb" d="M92,214 L85,364"/>
+        <path class="limb" d="M108,214 L115,364"/>
+        <path class="sil" d="M62,86 C62,68 82,58 100,58 C118,58 138,68 138,86 L146,196 L118,196 L112,214 L88,214 L82,196 L54,196 Z"/>
+        <circle class="sil" cx="100" cy="34" r="24"/>
+        <circle class="pt" data-attr-pt="pulse" cx="100" cy="34" r="4" fill="var(--oxide)"/>
+        <circle class="pt" data-attr-pt="weight" cx="100" cy="130" r="4" fill="var(--chip-2)"/>
+        <circle class="pt" data-attr-pt="biceps" cx="60" cy="120" r="4" fill="var(--chip-1)"/>
+        <circle class="pt" data-attr-pt="waist" cx="100" cy="196" r="4" fill="var(--gold)"/>
+      </svg>
+      <div class="attrGrid" id="attrGrid"></div>
+    </div>
+    <p class="seclabel">Personal records</p>
+    <div class="recordsGrid" id="recordsGrid"></div>
+  </div>
+
+  <div id="cardioView" style="display:none">
+    <div class="cardioForm" id="cardioForm">
+      <div class="crow">
+        <label>Type<select id="cType">
+          <option value="run">Run</option>
+          <option value="bike">Bike</option>
+          <option value="row">Row</option>
+          <option value="swim">Swim</option>
+        </select></label>
+        <label>Date<input type="date" id="cDate"></label>
+      </div>
+      <div class="crow">
+        <label>Distance (km)<input type="number" id="cDist" step="0.1" min="0" inputmode="decimal"></label>
+        <label>Time (min)<input type="number" id="cMin" step="1" min="0" inputmode="numeric"></label>
+      </div>
+      <textarea id="cNote" placeholder="Notes (optional) — route, how it felt"></textarea>
+      <button id="cAdd" type="button">Log session</button>
+    </div>
+    <p class="seclabel">Best pace</p>
+    <div id="cardioBest" style="margin-bottom:24px"></div>
+    <p class="seclabel">Log</p>
+    <div id="cardioLog"></div>
+  </div>
+
   <footer>
-    <span>Baseline · 3 pull-ups · 15 push-ups · 104 kg · 184 cm</span>
     <span id="savenote"></span>
     <div class="fbtns">
       <button id="export" type="button">Export backup</button>
@@ -393,6 +482,15 @@ const BODYWEIGHT=[
   {id:'po',name:'Push-ups',target:50},
   {id:'dp',name:'Dips',target:null}
 ];
+const ATTR_DEFS=[
+  {id:'pulse',  name:'Resting pulse', unit:'bpm', color:'var(--oxide)'},
+  {id:'weight', name:'Weight',        unit:'kg',  color:'var(--chip-2)'},
+  {id:'biceps', name:'Biceps',        unit:'cm',  color:'var(--chip-1)'},
+  {id:'waist',  name:'Waist',         unit:'cm',  color:'var(--gold)'}
+];
+const CARDIO_TYPES=[
+  {id:'run',name:'Run'},{id:'bike',name:'Bike'},{id:'row',name:'Row'},{id:'swim',name:'Swim'}
+];
 const BLOCK_WEEKS=6;      // default length of an auto-generated block
 const CYCLE_WEEKS=8;      // periodized-block wave: 4 volume + 3 intensity + 1 deload
 
@@ -408,14 +506,15 @@ const BLOCK01={
 };
 
 /* ============ state ============ */
-let state={weights:{},fails:{},best:{},bwBest:{},deloadCount:{},sessions:{},blocks:[]};
+let state={weights:{},fails:{},best:{},bwBest:{},deloadCount:{},sessions:{},blocks:[],attrs:{},cardio:[]};
 function freshState(){
-  state={weights:{},fails:{},best:{},bwBest:{},deloadCount:{},sessions:{},blocks:[BLOCK01]};
+  state={weights:{},fails:{},best:{},bwBest:{},deloadCount:{},sessions:{},blocks:[BLOCK01],attrs:{},cardio:[]};
   LIFT_IDS.forEach(id=>{
     state.weights[id]=BLOCK01.lifts[id].startWeight;
     state.fails[id]=0; state.best[id]=0; state.deloadCount[id]=0;
   });
   BODYWEIGHT.forEach(b=>state.bwBest[b.id]=0);
+  ATTR_DEFS.forEach(a=>state.attrs[a.id]=[]);
 }
 freshState();
 
@@ -568,6 +667,9 @@ function ensureShape(){
   });
   if(!state.bwBest) state.bwBest={};
   BODYWEIGHT.forEach(b=>{ if(state.bwBest[b.id]===undefined) state.bwBest[b.id]=0; });
+  if(!state.attrs) state.attrs={};
+  ATTR_DEFS.forEach(a=>{ if(!state.attrs[a.id]) state.attrs[a.id]=[]; });
+  if(!state.cardio) state.cardio=[];
 }
 async function load(){
   const fresh=await readKey(KEY);
@@ -1094,20 +1196,129 @@ function renderHistory(){
   el.innerHTML=h;
 }
 
+/* ============ body attributes ============ */
+function attrLatestAndDelta(id){
+  const hist=(state.attrs[id]||[]).slice().sort((a,b)=>a.date<b.date?-1:(a.date>b.date?1:0));
+  if(!hist.length) return {cur:null,delta:null};
+  const cur=hist[hist.length-1].value;
+  if(hist.length<2) return {cur,delta:null};
+  return {cur, delta:round(cur-hist[hist.length-2].value)};
+}
+function renderAttrs(){
+  const g=document.getElementById('attrGrid');
+  let h='';
+  ATTR_DEFS.forEach(def=>{
+    const {cur,delta}=attrLatestAndDelta(def.id);
+    let deltaTxt='';
+    if(delta){ deltaTxt=(delta>0?'↑ +':'↓ ')+Math.abs(delta)+' '+def.unit+' since last'; }
+    else if(delta===0){ deltaTxt='↔ same as last'; }
+    h+='<div class="attrCard" style="border-left-color:'+def.color+'">'+
+       '<div class="an">'+def.name+'</div>'+
+       '<div class="av">'+(cur!==null?cur:'—')+'<span class="au">'+def.unit+'</span></div>'+
+       (deltaTxt?'<div class="ad">'+deltaTxt+'</div>':'')+
+       '<div class="ain"><input type="number" step="0.1" inputmode="decimal" placeholder="new" data-attr="'+def.id+'" aria-label="Log '+def.name+'">'+
+       '<button type="button" data-add="'+def.id+'">Log</button></div>'+
+       '</div>';
+  });
+  g.innerHTML=h;
+  g.querySelectorAll('button[data-add]').forEach(b=>b.onclick=async()=>{
+    const id=b.dataset.add;
+    const input=g.querySelector('input[data-attr="'+id+'"]');
+    const v=parseFloat(input.value);
+    if(isNaN(v)) return;
+    if(!state.attrs[id]) state.attrs[id]=[];
+    const today=todayISO();
+    const existing=state.attrs[id].find(e=>e.date===today);
+    if(existing) existing.value=v; else state.attrs[id].push({date:today,value:v});
+    await save();
+    renderAttrs();
+  });
+}
+function renderRecords(){
+  const g=document.getElementById('recordsGrid');
+  let h='';
+  LIFT_IDS.forEach(id=>{
+    const def=LIFT_DEFS[id], v=state.best[id]||0;
+    h+='<div class="recCard"><div class="rn">'+def.name+'</div><div class="rv">'+(v||'—')+' kg</div></div>';
+  });
+  BODYWEIGHT.forEach(b=>{
+    const v=state.bwBest[b.id]||0;
+    h+='<div class="recCard"><div class="rn">'+b.name+'</div><div class="rv">'+(v||'—')+' reps</div></div>';
+  });
+  CARDIO_TYPES.forEach(ct=>{
+    const p=bestPace(ct.id);
+    h+='<div class="recCard"><div class="rn">Best '+ct.name.toLowerCase()+' pace</div><div class="rv">'+(p!==null?fmtPace(p):'—')+'</div></div>';
+  });
+  g.innerHTML=h;
+}
+
+/* ============ cardio ============ */
+function bestPace(type){
+  const entries=state.cardio.filter(c=>c.type===type&&c.distanceKm>0&&c.minutes>0);
+  if(!entries.length) return null;
+  return Math.min(...entries.map(c=>c.minutes/c.distanceKm));
+}
+function fmtPace(p){ const m=Math.floor(p), s=Math.round((p-m)*60); return m+':'+String(s).padStart(2,'0')+' /km'; }
+
+function renderCardio(){
+  const dateEl=document.getElementById('cDate');
+  if(!dateEl.value) dateEl.value=todayISO();
+
+  document.getElementById('cardioBest').innerHTML=CARDIO_TYPES.map(ct=>{
+    const p=bestPace(ct.id);
+    return '<div class="tgrow"><div class="tgtop"><b>'+ct.name+'</b><span>'+(p!==null?fmtPace(p):'no data')+'</span></div></div>';
+  }).join('');
+
+  const logEl=document.getElementById('cardioLog');
+  const entries=state.cardio.slice().sort((a,b)=>b.date<a.date?-1:(b.date>a.date?1:0));
+  if(!entries.length){ logEl.innerHTML='<p class="hempty">No cardio logged yet.</p>'; return; }
+  logEl.innerHTML=entries.map(c=>{
+    const typeName=(CARDIO_TYPES.find(t=>t.id===c.type)||{name:c.type}).name;
+    const pace=c.distanceKm>0?fmtPace(c.minutes/c.distanceKm):'';
+    return '<div class="hcard"><p class="hdate">'+fmtLabel(c.date)+' · '+typeName+'</p>'+
+      '<div class="hrow"><span class="hn">Distance</span><span class="hv">'+c.distanceKm+' km</span></div>'+
+      '<div class="hrow"><span class="hn">Time</span><span class="hv">'+c.minutes+' min</span></div>'+
+      (pace?'<div class="hrow"><span class="hn">Pace</span><span class="hv">'+pace+'</span></div>':'')+
+      (c.note?'<p class="hnote">"'+escapeHtml(c.note)+'"</p>':'')+
+      '<p class="delrow"><button type="button" class="delbtn" data-del="'+c.id+'">Delete</button></p>'+
+      '</div>';
+  }).join('');
+  logEl.querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{
+    state.cardio=state.cardio.filter(c=>String(c.id)!==b.dataset.del);
+    await save(); renderCardio();
+  });
+}
+document.getElementById('cAdd').onclick=async()=>{
+  const type=document.getElementById('cType').value;
+  const date=document.getElementById('cDate').value||todayISO();
+  const dist=parseFloat(document.getElementById('cDist').value);
+  const mins=parseFloat(document.getElementById('cMin').value);
+  if(isNaN(dist)||isNaN(mins)||dist<=0||mins<=0) return;
+  const note=document.getElementById('cNote').value.trim();
+  state.cardio.push({id:Date.now()+'-'+Math.random().toString(36).slice(2,7), date, type, distanceKm:dist, minutes:mins, note});
+  document.getElementById('cDist').value='';
+  document.getElementById('cMin').value='';
+  document.getElementById('cNote').value='';
+  await save();
+  renderCardio();
+};
+
 /* ============ tabs ============ */
-document.getElementById('tabToday').onclick=()=>{
-  document.getElementById('mainView').style.display='';
-  document.getElementById('historyView').style.display='none';
-  document.getElementById('tabToday').classList.add('on');
-  document.getElementById('tabHistory').classList.remove('on');
-};
-document.getElementById('tabHistory').onclick=()=>{
-  document.getElementById('mainView').style.display='none';
-  document.getElementById('historyView').style.display='';
-  document.getElementById('tabToday').classList.remove('on');
-  document.getElementById('tabHistory').classList.add('on');
-  renderHistory();
-};
+const TABS=[
+  {btn:'tabToday',   view:'mainView',    onShow:()=>{}},
+  {btn:'tabHistory', view:'historyView', onShow:renderHistory},
+  {btn:'tabBody',    view:'bodyView',    onShow:()=>{renderAttrs();renderRecords();}},
+  {btn:'tabCardio',  view:'cardioView',  onShow:renderCardio}
+];
+TABS.forEach(t=>{
+  document.getElementById(t.btn).onclick=()=>{
+    TABS.forEach(o=>{
+      document.getElementById(o.view).style.display=o===t?'':'none';
+      document.getElementById(o.btn).classList.toggle('on',o===t);
+    });
+    t.onShow();
+  };
+});
 
 /* ============ backup ============ */
 document.getElementById('export').onclick=()=>{
