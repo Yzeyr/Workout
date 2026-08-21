@@ -1230,12 +1230,15 @@ function renderHistory(){
 }
 
 /* ============ body attributes ============ */
+// round() snaps to the nearest 0.5 for plate-loadable barbell weights — wrong here,
+// where a biceps measurement going 38 -> 38.3 should read as +0.3, not jump to +0.5.
+const round1=v=>Math.round(v*10)/10;
 function attrLatestAndDelta(id){
   const hist=(state.attrs[id]||[]).slice().sort((a,b)=>a.date<b.date?-1:(a.date>b.date?1:0));
   if(!hist.length) return {cur:null,delta:null};
-  const cur=hist[hist.length-1].value;
+  const cur=round1(hist[hist.length-1].value);
   if(hist.length<2) return {cur,delta:null};
-  return {cur, delta:round(cur-hist[hist.length-2].value)};
+  return {cur, delta:round1(cur-round1(hist[hist.length-2].value))};
 }
 function renderAttrs(){
   const g=document.getElementById('attrGrid');
