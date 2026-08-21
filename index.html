@@ -387,20 +387,37 @@
   <div id="bodyView" style="display:none">
     <div class="bodyWrap">
       <svg class="silhouette" viewBox="0 0 200 380" xmlns="http://www.w3.org/2000/svg">
-        <path class="limb" d="M62,90 L42,196"/>
-        <path class="limb" d="M138,90 L158,196"/>
-        <path class="limb" d="M92,214 L85,364"/>
-        <path class="limb" d="M108,214 L115,364"/>
-        <path class="sil" d="M62,86 C62,68 82,58 100,58 C118,58 138,68 138,86 L146,196 L118,196 L112,214 L88,214 L82,196 L54,196 Z"/>
-        <circle class="sil" cx="100" cy="34" r="24"/>
-        <!-- Rough placeholder positions — will be re-placed once the silhouette itself is redrawn. -->
-        <circle class="pt" data-attr-pt="pulse" cx="100" cy="34" r="3.5" fill="var(--oxide)"/>
-        <circle class="pt" data-attr-pt="weight" cx="100" cy="140" r="3.5" fill="var(--chip-2)"/>
-        <circle class="pt" data-attr-pt="neck" cx="100" cy="68" r="3.5" fill="var(--gold)"/>
+        <!-- arms (drawn first so the torso overlaps the shoulder joint cleanly) -->
+        <path class="limb" d="M60,90 C48,118 43,152 46,190"/>
+        <path class="limb" d="M140,90 C152,118 157,152 154,190"/>
+        <!-- legs -->
+        <path class="limb" d="M87,214 C81,255 78,300 82,362"/>
+        <path class="limb" d="M113,214 C119,255 122,300 118,362"/>
+        <!-- neck bridge -->
+        <path class="sil" d="M91,56 L109,56 L108,72 L92,72 Z"/>
+        <!-- torso: neck -> shoulder -> chest -> waist (narrowest) -> hip flare -> crotch -->
+        <path class="sil" d="M92,72 L108,72
+          C130,74 144,80 144,94
+          C146,102 144,108 142,112
+          C138,140 130,160 124,178
+          C122,190 126,196 130,200
+          C132,204 128,210 118,212
+          L82,212
+          C72,210 68,204 70,200
+          C74,196 78,190 76,178
+          C70,160 62,140 58,112
+          C56,108 54,102 56,94
+          C56,80 70,74 92,72
+          Z"/>
+        <ellipse class="sil" cx="100" cy="34" rx="21" ry="24"/>
+        <!-- Rough placeholder positions — will be re-placed once a real reference photo is available. -->
+        <circle class="pt" data-attr-pt="pulse" cx="100" cy="30" r="3.5" fill="var(--oxide)"/>
+        <circle class="pt" data-attr-pt="weight" cx="100" cy="130" r="3.5" fill="var(--chip-2)"/>
+        <circle class="pt" data-attr-pt="neck" cx="100" cy="64" r="3.5" fill="var(--gold)"/>
         <circle class="pt" data-attr-pt="chest" cx="100" cy="98" r="3.5" fill="var(--steel)"/>
-        <circle class="pt" data-attr-pt="shoulders" cx="72" cy="84" r="3.5" fill="var(--steel)"/>
-        <circle class="pt" data-attr-pt="biceps" cx="55" cy="118" r="3.5" fill="var(--chip-1)"/>
-        <circle class="pt" data-attr-pt="forearm" cx="45" cy="165" r="3.5" fill="var(--chip-1)"/>
+        <circle class="pt" data-attr-pt="shoulders" cx="66" cy="86" r="3.5" fill="var(--steel)"/>
+        <circle class="pt" data-attr-pt="biceps" cx="52" cy="118" r="3.5" fill="var(--chip-1)"/>
+        <circle class="pt" data-attr-pt="forearm" cx="46" cy="162" r="3.5" fill="var(--chip-1)"/>
         <circle class="pt" data-attr-pt="waist" cx="100" cy="196" r="3.5" fill="var(--clay)"/>
         <circle class="pt" data-attr-pt="thighs" cx="92" cy="255" r="3.5" fill="var(--chip-3)"/>
         <circle class="pt" data-attr-pt="calves" cx="88" cy="335" r="3.5" fill="var(--chip-3)"/>
