@@ -440,7 +440,7 @@
         <label>Date<input type="date" id="cDate"></label>
       </div>
       <div class="crow">
-        <label>Distance (km)<input type="number" id="cDist" step="0.1" min="0" inputmode="decimal"></label>
+        <label>Distance (km)<input type="text" id="cDist" inputmode="decimal"></label>
         <label>Time (min)<input type="number" id="cMin" step="1" min="0" inputmode="numeric"></label>
       </div>
       <textarea id="cNote" placeholder="Notes (optional) — route, how it felt"></textarea>
@@ -487,6 +487,11 @@ const fmtRange=(a,b)=>{
          db.getDate()+' '+MONTH_NAMES[db.getMonth()].slice(0,3)+' '+db.getFullYear();
 };
 const round=w=>Math.round(w*2)/2;
+// type="number" rejects a comma decimal separator outright on iOS when the phone's
+// language is set to something that uses "," (Norwegian included) — the on-screen
+// keypad only offers ",", so nothing typeable ever validates. Decimal-capable fields
+// use type="text" instead and parse through this, accepting either separator.
+const parseNum=s=>parseFloat(String(s).trim().replace(',','.'));
 
 /* ============ config ============ */
 const KEY='workout-v1', OLD_KEY='block01v3';
@@ -941,7 +946,7 @@ function renderDay(iso,block){
       h+='<div class="lift'+(e.failed?' is-locked':'')+'"><div class="lrow">'+
          '<div class="meta"><div class="nm">'+def.name+(e.pr?'<span class="prbadge">PR</span>':'')+'</div>'+
          '<div class="pr">'+meta+'</div>'+(why?'<div class="why">'+why+'</div>':'')+'</div>'+
-         '<div><input class="wtin" type="number" step="2.5" min="0" value="'+e.w+'" data-l="'+id+'" aria-label="'+def.name+' kg"><span class="unit">kg</span></div>'+
+         '<div><input class="wtin" type="text" inputmode="decimal" value="'+e.w+'" data-l="'+id+'" aria-label="'+def.name+' kg"><span class="unit">kg</span></div>'+
          '<button class="fail" type="button" aria-pressed="'+e.failed+'" data-f="'+id+'" aria-label="Missed">'+(e.failed?'✗':'')+'</button>'+
          '</div>'+setsRow+extra+'</div>';
       if(deloadMsg[id]) h+='<div class="deload"><b>Deload.</b> '+deloadMsg[id]+'</div>';
@@ -984,7 +989,7 @@ function renderDay(iso,block){
   p.querySelectorAll('.setbox').forEach(b=>b.onclick=()=>toggleSet(iso,b.dataset.l,Number(b.dataset.i)));
   p.querySelectorAll('.fail').forEach(b=>b.onclick=()=>markFail(iso,b.dataset.f));
   p.querySelectorAll('.wtin').forEach(i=>i.onchange=async()=>{
-    const v=parseFloat(i.value); if(isNaN(v)||v<0) return;
+    const v=parseNum(i.value); if(isNaN(v)||v<0) return;
     const s=session(iso,block); s[i.dataset.l].w=round(v);
     if(isMutableWeight(block,i.dataset.l)) state.weights[i.dataset.l]=round(v);
     await save(); render(iso);
@@ -1252,7 +1257,7 @@ function renderAttrs(){
        '<div class="an">'+def.name+'</div>'+
        '<div class="av">'+(cur!==null?cur:'—')+'<span class="au">'+def.unit+'</span></div>'+
        (deltaTxt?'<div class="ad">'+deltaTxt+'</div>':'')+
-       '<div class="ain"><input type="number" step="0.1" inputmode="decimal" placeholder="new" data-attr="'+def.id+'" aria-label="Log '+def.name+'">'+
+       '<div class="ain"><input type="text" inputmode="decimal" placeholder="new" data-attr="'+def.id+'" aria-label="Log '+def.name+'">'+
        '<button type="button" data-add="'+def.id+'">Log</button></div>'+
        '</div>';
   });
@@ -1260,7 +1265,7 @@ function renderAttrs(){
   g.querySelectorAll('button[data-add]').forEach(b=>b.onclick=async()=>{
     const id=b.dataset.add;
     const input=g.querySelector('input[data-attr="'+id+'"]');
-    const v=parseFloat(input.value);
+    const v=parseNum(input.value);
     if(isNaN(v)) return;
     if(!state.attrs[id]) state.attrs[id]=[];
     const today=todayISO();
@@ -1327,8 +1332,8 @@ function renderCardio(){
 document.getElementById('cAdd').onclick=async()=>{
   const type=document.getElementById('cType').value;
   const date=document.getElementById('cDate').value||todayISO();
-  const dist=parseFloat(document.getElementById('cDist').value);
-  const mins=parseFloat(document.getElementById('cMin').value);
+  const dist=parseNum(document.getElementById('cDist').value);
+  const mins=parseNum(document.getElementById('cMin').value);
   if(isNaN(dist)||isNaN(mins)||dist<=0||mins<=0) return;
   const note=document.getElementById('cNote').value.trim();
   state.cardio.push({id:Date.now()+'-'+Math.random().toString(36).slice(2,7), date, type, distanceKm:dist, minutes:mins, note});
