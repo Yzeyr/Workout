@@ -296,6 +296,11 @@
 
     <div class="consist" id="consist"></div>
 
+    <details class="tg" open>
+      <summary id="blockGoalLabel">Block goal</summary>
+      <div class="tgbody" id="blockGoal"></div>
+    </details>
+
     <details class="tg">
       <summary>Two-year targets</summary>
       <div class="tgbody" id="targets"></div>
@@ -453,6 +458,18 @@ function phaseScheme(iso){
   return {p:3,name:'Pyramid',txt:'ramp → top set of 2',reps:2,sets:5,
           ramp:[[.55,10],[.70,8],[.80,5],[.90,3],[1,2]]};
 }
+// Shared by liftPlan (real weekIdx derived from logged history) and blockGoal (an ideal
+// weekIdx assuming every week goes clean) so the two can never drift apart.
+function periodizedPlan(cfg,weekIdx){
+  const cyc=Math.floor(weekIdx/CYCLE_WEEKS), within=weekIdx%CYCLE_WEEKS;
+  const cycleBase=cfg.startWeight+cyc*cfg.inc*4;
+  let scheme,w;
+  if(within<4){ scheme={name:'Volume',txt:'4 × 6',reps:6,sets:4,ramp:null}; w=cycleBase+within*cfg.inc; }
+  else if(within<7){ scheme={name:'Intensity',txt:'ramp → top double',reps:2,sets:5,
+      ramp:[[.6,8],[.75,5],[.85,3],[.92,2],[1,2]]}; w=cycleBase+4*cfg.inc+(within-4)*cfg.inc; }
+  else { scheme={name:'Deload',txt:'2 × 5 (light)',reps:5,sets:2,ramp:null,deload:true}; w=cycleBase*0.6; }
+  return {scheme, weight:loadable(round(w))};
+}
 // Weekly/block-mode weight is derived fresh from the block config + session history each
 // time — never mutated in place — so it can't drift out of sync with what was logged.
 function liftPlan(id,iso,block){
@@ -465,15 +482,28 @@ function liftPlan(id,iso,block){
     return {scheme:{name:'Weekly',txt:'4 × 4',reps:4,sets:4,ramp:null},
             weight:loadable(round(cfg.startWeight+weekIdx*cfg.inc))};
   }
-  // periodized block mode: volume (4wk) -> intensity (3wk) -> deload (1wk), repeating
-  const cyc=Math.floor(weekIdx/CYCLE_WEEKS), within=weekIdx%CYCLE_WEEKS;
-  const cycleBase=cfg.startWeight+cyc*cfg.inc*4;
-  let scheme,w;
-  if(within<4){ scheme={name:'Volume',txt:'4 × 6',reps:6,sets:4,ramp:null}; w=cycleBase+within*cfg.inc; }
-  else if(within<7){ scheme={name:'Intensity',txt:'ramp → top double',reps:2,sets:5,
-      ramp:[[.6,8],[.75,5],[.85,3],[.92,2],[1,2]]}; w=cycleBase+4*cfg.inc+(within-4)*cfg.inc; }
-  else { scheme={name:'Deload',txt:'2 × 5 (light)',reps:5,sets:2,ramp:null,deload:true}; w=cycleBase*0.6; }
-  return {scheme, weight:loadable(round(w))};
+  return periodizedPlan(cfg,weekIdx);      // periodized block mode
+}
+// Total scheduled gym-day sessions / calendar weeks in a block's date range — used to
+// project an end-of-block goal assuming every session and every week goes clean.
+function totalGymSessions(block){
+  let n=0,cur=block.start;
+  while(cur<=block.end){ if(isGymDay(cur,block)) n++; cur=addDaysISO(cur,1); }
+  return n;
+}
+function totalWeeksIn(block){
+  let n=0,wk=weekStartOf(block.start);
+  while(wk<=block.end){ n++; wk=addDaysISO(wk,7); }
+  return n;
+}
+function blockGoal(id,block){
+  const inc=block.phaseSchedule?LIFT_DEFS[id].inc:block.lifts[id].inc;
+  const startW=block.lifts[id].startWeight;
+  if(block.phaseSchedule||block.lifts[id].mode==='linear')
+    return loadable(round(startW+inc*totalGymSessions(block)));
+  if(block.lifts[id].mode==='weekly')
+    return loadable(round(startW+inc*totalWeeksIn(block)));
+  return periodizedPlan(block.lifts[id],totalWeeksIn(block)-1).weight;
 }
 function setSpec(sc,w,idx){
   if(sc.ramp){ const [pct,reps]=sc.ramp[idx]; return {w:loadable(round(w*pct)),reps}; }
@@ -983,6 +1013,19 @@ function stats(block){
     cEl.innerHTML='<span class="big">'+done+'</span><span class="lbl">of <b>'+sched+'</b> sessions logged so far</span>'+
       '<div class="track" style="flex-basis:100%"><i style="width:'+pct+'%"></i></div>';
   }
+
+  document.getElementById('blockGoalLabel').textContent=block.label+' goal';
+  const g=document.getElementById('blockGoal');
+  let gh='';
+  LIFT_IDS.forEach(id=>{
+    const def=LIFT_DEFS[id], curBest=state.best[id]||0;
+    const start=block.lifts[id].startWeight, goal=blockGoal(id,block);
+    const pct=goal>start?Math.min(100,Math.round(Math.max(0,curBest-start)/(goal-start)*100)):100;
+    gh+='<div class="tgrow"><div class="tgtop"><b>'+def.name+'</b><span>'+(curBest||start)+' / '+goal+' kg</span></div>'+
+       '<div class="tgbar"><i style="width:'+pct+'%"></i></div></div>';
+  });
+  gh+='<p class="pr" style="margin-top:12px">Projected if every scheduled session this block goes clean — not a promise.</p>';
+  g.innerHTML=gh;
 
   const t=document.getElementById('targets');
   let h='';
