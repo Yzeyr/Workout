@@ -242,6 +242,29 @@
   .cnext{font-size:12.5px;color:var(--zinc);margin-top:10px;padding-top:10px;
     border-top:1px solid var(--line);}
 
+  /* ---- next-block proposal ---- */
+  .propose{border:1px solid var(--gold);padding:18px;margin-bottom:22px;}
+  .propose .plabel{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--gold);margin-bottom:6px;}
+  .propose h3{margin:2px 0 6px;}
+  .prow{display:flex;justify-content:space-between;align-items:baseline;gap:10px;
+    padding:10px 0;border-top:1px solid var(--line);}
+  .prow:first-of-type{border-top:none;}
+  .prow .pn{font-family:"Barlow Condensed",sans-serif;font-weight:600;text-transform:uppercase;
+    font-size:16px;}
+  .prow .pv{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--chip-1);text-align:right;}
+  .modechip{display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:9px;
+    letter-spacing:.1em;text-transform:uppercase;padding:2px 6px;border-radius:2px;
+    background:var(--chip-3);color:var(--plaster);margin-left:6px;vertical-align:1px;}
+  .modechip.up{background:var(--oxide);}
+  .pdates{display:flex;gap:14px;margin:12px 0;font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--zinc);}
+  .pdates label{display:flex;flex-direction:column;gap:4px;}
+  .pdates input{background:var(--panel2);border:1px solid var(--line);color:var(--plaster);
+    font-family:"IBM Plex Mono",monospace;font-size:12px;padding:6px 8px;border-radius:2px;}
+  .startbtn{width:100%;margin-top:14px;background:var(--gold);color:var(--ink);border:none;
+    border-radius:2px;padding:13px;cursor:pointer;font-family:"IBM Plex Mono",monospace;
+    font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;}
+
   footer{padding-top:16px;border-top:1px solid var(--line);
     font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.1em;
     text-transform:uppercase;color:var(--zinc);}
@@ -261,7 +284,7 @@
 </div>
 <div class="wrap">
 
-  <p class="eyebrow">Block 01 · 19 Aug — 30 Sep 2026</p>
+  <p class="eyebrow" id="eyebrow">Block 01 · 19 Aug — 30 Sep 2026</p>
   <h1>Every number<br>starts at the <em>bar</em></h1>
 
   <div class="tabs">
@@ -278,7 +301,7 @@
       <div class="tgbody" id="targets"></div>
     </details>
 
-    <div class="scale">
+    <div class="scale" id="phaseScale">
       <div class="s1">01 Reset<span>Empty bar</span></div>
       <div class="s2">02 Load-in<span>First plates</span></div>
       <div class="s3">03 Pyramid<span>Real weight</span></div>
@@ -286,18 +309,7 @@
 
     <div id="panel" aria-live="polite"></div>
 
-    <div class="months">
-      <section>
-        <h2>August</h2>
-        <div class="dow"><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span></div>
-        <div class="grid" id="aug"></div>
-      </section>
-      <section>
-        <h2>September</h2>
-        <div class="dow"><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span></div>
-        <div class="grid" id="sep"></div>
-      </section>
-    </div>
+    <div class="months" id="monthsWrap"></div>
 
     <div class="legend">
       <span><i style="background:var(--chip-2);border-color:var(--chip-2)"></i>Gym</span>
@@ -338,55 +350,130 @@
 </div>
 
 <script>
-/* ============ config ============ */
-const AUG_START=5, SEP_START=1, KEY='block01v3';
-const _now=new Date();
-const TODAY={m:_now.getMonth()+1, d:_now.getDate()};
-const BAR=20, PLATES=[25,20,15,10,5,2.5,1.25];
+/* ============ dates ============ */
+const MONTH_NAMES=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const pad2=n=>String(n).padStart(2,'0');
+const isoOf=d=>d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate());
+const parseISO=iso=>{ const [y,m,d]=iso.split('-').map(Number); return new Date(y,m-1,d); };
+const todayISO=()=>isoOf(new Date());
+const addDaysISO=(iso,n)=>{ const d=parseISO(iso); d.setDate(d.getDate()+n); return isoOf(d); };
+const weekdayOf=iso=>parseISO(iso).getDay();                          // 0=Sun..6=Sat
+const weekStartOf=iso=>addDaysISO(iso,-((weekdayOf(iso)+6)%7));       // Monday of that week
+const fmtLabel=iso=>{ const d=parseISO(iso); return d.getDate()+' '+MONTH_NAMES[d.getMonth()]+' '+d.getFullYear(); };
+const fmtRange=(a,b)=>{
+  const da=parseISO(a), db=parseISO(b);
+  return da.getDate()+' '+MONTH_NAMES[da.getMonth()].slice(0,3)+' — '+
+         db.getDate()+' '+MONTH_NAMES[db.getMonth()].slice(0,3)+' '+db.getFullYear();
+};
+const round=w=>Math.round(w*2)/2;
 
-const LIFTS=[
-  {id:'sq',name:'Back squat',    inc:5,  start:20, rest:180, target:155},
-  {id:'bp',name:'Bench press',   inc:2.5,start:20, rest:150, target:130},
-  {id:'dl',name:'Deadlift',      inc:5,  start:40, rest:180, target:210},
-  {id:'op',name:'Overhead press',inc:2.5,start:20, rest:150, target:80}
-];
+/* ============ config ============ */
+const KEY='workout-v1', OLD_KEY='block01v3';
+const BAR=20, PLATES=[25,20,15,10,5,2.5,1.25];
+const LIFT_IDS=['sq','bp','dl','op'];
+const LIFT_DEFS={
+  sq:{name:'Back squat',    inc:5,  rest:180, target:155,
+      supersets:['Ankle dorsiflexion rocks · 2 × 10 each side','Plank · 30–45s']},
+  bp:{name:'Bench press',   inc:2.5,rest:150, target:130,
+      supersets:['Face pulls · 2 × 15','Band pull-aparts · 2 × 15']},
+  dl:{name:'Deadlift',      inc:5,  rest:180, target:210,
+      supersets:['Hanging knee raises · 2 × 10','Farmer carry · 2 × 20m']},
+  op:{name:'Overhead press',inc:2.5,rest:150, target:80,
+      supersets:['Pull-ups · easy sets, well short of failure','Band pull-aparts · 2 × 15']}
+};
 const BODYWEIGHT=[
   {id:'pu',name:'Pull-ups',target:20},
   {id:'po',name:'Push-ups',target:50},
   {id:'dp',name:'Dips',target:null}
 ];
-const SUPERSETS={
-  sq:['Ankle dorsiflexion rocks · 2 × 10 each side','Plank · 30–45s'],
-  bp:['Face pulls · 2 × 15','Band pull-aparts · 2 × 15'],
-  dl:['Hanging knee raises · 2 × 10','Farmer carry · 2 × 20m'],
-  op:['Pull-ups · easy sets, well short of failure','Band pull-aparts · 2 × 15']
+const BLOCK_WEEKS=6;      // default length of an auto-generated block
+const CYCLE_WEEKS=8;      // periodized-block wave: 4 volume + 3 intensity + 1 deload
+
+// Block 01 keeps its original hand-authored Reset/Load-in/Pyramid ramp — phaseSchedule:true
+// means "use phaseScheme() below", not the per-lift auto modes that later blocks generate.
+const BLOCK01={
+  id:'block01', label:'Block 01 — Strength',
+  start:'2026-08-19', end:'2026-09-30',
+  gymDays:[1,3,5],                              // Mon/Wed/Fri (Date#getDay() numbering)
+  phaseSchedule:true,
+  lifts:{ sq:{startWeight:20}, bp:{startWeight:20}, dl:{startWeight:40}, op:{startWeight:20} },
+  startBest:{sq:0,bp:0,dl:0,op:0}
 };
 
-let state={weights:{},fails:{},best:{},bwBest:{},sessions:{}};
+/* ============ state ============ */
+let state={weights:{},fails:{},best:{},bwBest:{},deloadCount:{},sessions:{},blocks:[]};
 function freshState(){
-  state={weights:{},fails:{},best:{},bwBest:{},sessions:{}};
-  LIFTS.forEach(l=>{state.weights[l.id]=l.start;state.fails[l.id]=0;state.best[l.id]=0;});
+  state={weights:{},fails:{},best:{},bwBest:{},deloadCount:{},sessions:{},blocks:[BLOCK01]};
+  LIFT_IDS.forEach(id=>{
+    state.weights[id]=BLOCK01.lifts[id].startWeight;
+    state.fails[id]=0; state.best[id]=0; state.deloadCount[id]=0;
+  });
   BODYWEIGHT.forEach(b=>state.bwBest[b.id]=0);
 }
 freshState();
 
-/* ============ schedule ============ */
-const dow=(m,d)=>((m===8?AUG_START:SEP_START)+d-1)%7;
-const isGym=(m,d)=>[0,2,4].includes(dow(m,d));
-const inBlock=(m,d)=>m===9||d>=19;
-const phase=(m,d)=>m===8?1:(d<=14?2:3);
-const key=(m,d)=>m+'-'+d;
-const dv=(m,d)=>m*100+d;
-const label=(m,d)=>d+' '+(m===8?'August':'September')+' 2026';
-const round=w=>Math.round(w*2)/2;
+/* ============ blocks ============ */
+function blockForDate(iso){ return state.blocks.find(b=>iso>=b.start&&iso<=b.end)||null; }
+function latestBlock(){ return state.blocks[state.blocks.length-1]; }
+function isGymDay(iso,block){ return block.gymDays.includes(weekdayOf(iso)); }
+function isRestDay(iso){ return weekdayOf(iso)===0; }             // Sunday
 
-function scheme(m,d){
-  const p=phase(m,d);
+function weekGymDates(weekMon,block){
+  const out=[];
+  for(let i=0;i<7;i++){
+    const iso=addDaysISO(weekMon,i);
+    if(iso>=block.start&&iso<=block.end&&isGymDay(iso,block)) out.push(iso);
+  }
+  return out;
+}
+function weekWasClean(id,weekMon,block){
+  const dates=weekGymDates(weekMon,block);
+  if(!dates.length) return false;
+  return dates.every(iso=>{ const s=state.sessions[iso]; return s&&liftComplete(s[id]); });
+}
+// Counts fully-clean prior weeks since the block began — a missed week just doesn't
+// count, future clean weeks still do, so progress resumes instead of freezing forever.
+function effectiveWeekIndex(id,iso,block){
+  let idx=0, wk=weekStartOf(block.start);
+  const thisWeek=weekStartOf(iso);
+  while(wk<thisWeek){
+    if(weekWasClean(id,wk,block)) idx++;
+    wk=addDaysISO(wk,7);
+  }
+  return idx;
+}
+
+/* ============ per-lift scheme + weight ============ */
+function phaseScheme(iso){
+  const d=parseISO(iso), mo=d.getMonth()+1, day=d.getDate();
+  const p=mo===8?1:(day<=14?2:3);
   if(p===1) return {p:1,name:'Reset',txt:'3 × 5',reps:5,sets:3,ramp:null};
-  if(p===2) return d<=7 ? {p:2,name:'Load-in',txt:'3 × 5',reps:5,sets:3,ramp:null}
-                        : {p:2,name:'Load-in',txt:'4 × 4',reps:4,sets:4,ramp:null};
+  if(p===2) return day<=7 ? {p:2,name:'Load-in',txt:'3 × 5',reps:5,sets:3,ramp:null}
+                          : {p:2,name:'Load-in',txt:'4 × 4',reps:4,sets:4,ramp:null};
   return {p:3,name:'Pyramid',txt:'ramp → top set of 2',reps:2,sets:5,
           ramp:[[.55,10],[.70,8],[.80,5],[.90,3],[1,2]]};
+}
+// Weekly/block-mode weight is derived fresh from the block config + session history each
+// time — never mutated in place — so it can't drift out of sync with what was logged.
+function liftPlan(id,iso,block){
+  if(block.phaseSchedule) return {scheme:phaseScheme(iso), weight:state.weights[id]};
+  const cfg=block.lifts[id];
+  if(cfg.mode==='linear') return {scheme:{name:'Linear',txt:'3 × 5',reps:5,sets:3,ramp:null}, weight:state.weights[id]};
+
+  const weekIdx=effectiveWeekIndex(id,iso,block);
+  if(cfg.mode==='weekly'){
+    return {scheme:{name:'Weekly',txt:'4 × 4',reps:4,sets:4,ramp:null},
+            weight:loadable(round(cfg.startWeight+weekIdx*cfg.inc))};
+  }
+  // periodized block mode: volume (4wk) -> intensity (3wk) -> deload (1wk), repeating
+  const cyc=Math.floor(weekIdx/CYCLE_WEEKS), within=weekIdx%CYCLE_WEEKS;
+  const cycleBase=cfg.startWeight+cyc*cfg.inc*4;
+  let scheme,w;
+  if(within<4){ scheme={name:'Volume',txt:'4 × 6',reps:6,sets:4,ramp:null}; w=cycleBase+within*cfg.inc; }
+  else if(within<7){ scheme={name:'Intensity',txt:'ramp → top double',reps:2,sets:5,
+      ramp:[[.6,8],[.75,5],[.85,3],[.92,2],[1,2]]}; w=cycleBase+4*cfg.inc+(within-4)*cfg.inc; }
+  else { scheme={name:'Deload',txt:'2 × 5 (light)',reps:5,sets:2,ramp:null,deload:true}; w=cycleBase*0.6; }
+  return {scheme, weight:loadable(round(w))};
 }
 function setSpec(sc,w,idx){
   if(sc.ramp){ const [pct,reps]=sc.ramp[idx]; return {w:loadable(round(w*pct)),reps}; }
@@ -419,9 +506,42 @@ function escapeHtml(str){
 
 /* ============ storage ============ */
 let persists=true;
+async function readKey(k){
+  try{ const r=await window.storage.get(k,false); if(r&&r.value) return r.value; }catch(e){}
+  try{ const v=localStorage.getItem(k); if(v) return v; }catch(e){}
+  return null;
+}
+// One-time migration from the old single-block save (m-d keys, no blocks array) into the
+// multi-block shape. Runs only if nothing is saved yet under the new key.
+function migrateFromOld(old){
+  freshState();
+  Object.assign(state.weights,old.weights||{});
+  Object.assign(state.fails,old.fails||{});
+  Object.assign(state.best,old.best||{});
+  Object.assign(state.bwBest,old.bwBest||{});
+  Object.keys(old.sessions||{}).forEach(k=>{
+    const [m,d]=k.split('-').map(Number);
+    state.sessions['2026-'+pad2(m)+'-'+pad2(d)]=old.sessions[k];   // Block 01 only ever ran in 2026
+  });
+  return state;
+}
+function ensureShape(){
+  if(!state.blocks||!state.blocks.length) state.blocks=[BLOCK01];
+  if(!state.deloadCount) state.deloadCount={};
+  LIFT_IDS.forEach(id=>{
+    if(state.weights[id]===undefined) state.weights[id]=state.blocks[0].lifts[id].startWeight;
+    if(state.fails[id]===undefined) state.fails[id]=0;
+    if(state.best[id]===undefined) state.best[id]=0;
+    if(state.deloadCount[id]===undefined) state.deloadCount[id]=0;
+  });
+  if(!state.bwBest) state.bwBest={};
+  BODYWEIGHT.forEach(b=>{ if(state.bwBest[b.id]===undefined) state.bwBest[b.id]=0; });
+}
 async function load(){
-  try{ const r=await window.storage.get(KEY,false); if(r&&r.value){state=JSON.parse(r.value);return;} }catch(e){}
-  try{ const v=localStorage.getItem(KEY); if(v) state=JSON.parse(v); }catch(e){}
+  const fresh=await readKey(KEY);
+  if(fresh){ state=JSON.parse(fresh); ensureShape(); return; }
+  const old=await readKey(OLD_KEY);
+  if(old){ state=migrateFromOld(JSON.parse(old)); await save(); return; }
 }
 async function save(){
   let ok=false;
@@ -434,51 +554,47 @@ async function save(){
 /* ============ session model ============ */
 function liftComplete(e){ return !!e && !!e.setsDone && e.setsDone.length>0 && e.setsDone.every(Boolean); }
 
-function session(m,d){
-  const k=key(m,d), sc=scheme(m,d), n=sc.sets;
-  if(!state.sessions[k]){
+function session(iso,block){
+  if(!state.sessions[iso]){
     const s={bw:{},note:''};
-    LIFTS.forEach(l=>s[l.id]={w:state.weights[l.id],setsDone:Array(n).fill(false),failed:false,pr:false});
+    LIFT_IDS.forEach(id=>{
+      const plan=liftPlan(id,iso,block);
+      s[id]={w:plan.weight,setsDone:Array(plan.scheme.sets).fill(false),failed:false,pr:false};
+    });
     BODYWEIGHT.forEach(b=>s.bw[b.id]='');
-    state.sessions[k]=s;
+    state.sessions[iso]=s;
   }else{
-    const s=state.sessions[k];
+    const s=state.sessions[iso];
     if(!s.bw){s.bw={};BODYWEIGHT.forEach(b=>s.bw[b.id]='');}
     if(s.note===undefined) s.note='';
-    LIFTS.forEach(l=>{
-      let e=s[l.id];
-      if(!e){ e=s[l.id]={w:state.weights[l.id],setsDone:Array(n).fill(false),failed:false,pr:false}; }
-      if(!e.setsDone){                              // migrate from older single-checkbox model
-        const wasDone=e.done===true;
-        e.setsDone=Array(n).fill(wasDone);
-        delete e.done;
-      }
+    LIFT_IDS.forEach(id=>{
+      const plan=liftPlan(id,iso,block), n=plan.scheme.sets;
+      let e=s[id];
+      if(!e){ e=s[id]={w:plan.weight,setsDone:Array(n).fill(false),failed:false,pr:false}; }
       if(e.setsDone.length!==n){
         const filled=e.setsDone.every(Boolean)&&e.setsDone.length>0;
         e.setsDone=Array(n).fill(filled);
       }
-      if(!liftComplete(e)&&!e.failed) e.w=state.weights[l.id];
+      if(!liftComplete(e)&&!e.failed) e.w=plan.weight;
     });
   }
-  return state.sessions[k];
+  return state.sessions[iso];
 }
-function lastDone(m,d,id){
-  const t=dv(m,d); let best=null,bk=-1;
+function lastDone(iso,id){
+  let best=null,bk=null;
   Object.keys(state.sessions).forEach(k=>{
-    const [mm,dd]=k.split('-').map(Number), v=dv(mm,dd);
-    if(v>=t) return;
+    if(k>=iso) return;
     const e=state.sessions[k][id];
-    if(liftComplete(e)&&v>bk){bk=v;best=e.w;}
+    if(liftComplete(e)&&(bk===null||k>bk)){bk=k;best=e.w;}
   });
   return best;
 }
-function lastBW(m,d,id){
-  const t=dv(m,d); let best=null,bk=-1;
+function lastBW(iso,id){
+  let best=null,bk=null;
   Object.keys(state.sessions).forEach(k=>{
-    const [mm,dd]=k.split('-').map(Number), v=dv(mm,dd);
-    if(v>=t) return;
+    if(k>=iso) return;
     const s=state.sessions[k], val=s.bw&&s.bw[id];
-    if(val!==undefined&&val!==''&&v>bk){bk=v;best=val;}
+    if(val!==undefined&&val!==''&&(bk===null||k>bk)){bk=k;best=val;}
   });
   return best;
 }
@@ -486,45 +602,58 @@ function lastBW(m,d,id){
 /* ============ actions ============ */
 let deloadMsg={};
 
-async function toggleSet(m,d,liftId,idx){
-  const s=session(m,d), lift=LIFTS.find(l=>l.id===liftId), sc=scheme(m,d), e=s[liftId];
+// Only linear mode (and Block 01's legacy phase schedule) treats state.weights as the
+// mutable "next default" — weekly/block modes derive weight fresh each render instead.
+function isMutableWeight(block,id){ return block.phaseSchedule||block.lifts[id].mode==='linear'; }
+
+async function toggleSet(iso,liftId,idx){
+  const block=blockForDate(iso); if(!block) return;
+  const s=session(iso,block), def=LIFT_DEFS[liftId], sc=liftPlan(liftId,iso,block).scheme, e=s[liftId];
   if(e.failed) return;
   const wasComplete=liftComplete(e);
   e.setsDone[idx]=!e.setsDone[idx];
   const nowComplete=liftComplete(e);
+  const inc=block.phaseSchedule?def.inc:block.lifts[liftId].inc;
+  const floor=block.lifts[liftId].startWeight;
 
   if(!wasComplete&&nowComplete){
     state.fails[liftId]=0; delete deloadMsg[liftId];
     const topReps=sc.ramp?sc.ramp[sc.ramp.length-1][1]:sc.reps;
     const est=e1rm(e.w,topReps);
     if(est>(state.best[liftId]||0)){ state.best[liftId]=est; e.pr=true; } else e.pr=false;
-    state.weights[liftId]=round(e.w+lift.inc);
+    if(isMutableWeight(block,liftId)) state.weights[liftId]=round(e.w+inc);
   } else if(wasComplete&&!nowComplete){
-    state.weights[liftId]=round(Math.max(lift.start,state.weights[liftId]-lift.inc));
+    if(isMutableWeight(block,liftId)) state.weights[liftId]=round(Math.max(floor,state.weights[liftId]-inc));
     e.pr=false;
   }
-  if(e.setsDone[idx]) startRest(lift);
-  await save(); render(m,d);
+  if(e.setsDone[idx]) startRest(def);
+  await save(); render(iso);
 }
 
-async function markFail(m,d,id){
-  const s=session(m,d), lift=LIFTS.find(l=>l.id===id), sc=scheme(m,d), e=s[id];
+async function markFail(iso,id){
+  const block=blockForDate(iso); if(!block) return;
+  const s=session(iso,block), def=LIFT_DEFS[id], sc=liftPlan(id,iso,block).scheme, e=s[id];
+  const inc=block.phaseSchedule?def.inc:block.lifts[id].inc;
+  const floor=block.lifts[id].startWeight;
   if(e.failed){
     e.failed=false;
     state.fails[id]=Math.max(0,(state.fails[id]||0)-1);
     delete deloadMsg[id];
   }else{
-    if(liftComplete(e)) state.weights[id]=round(Math.max(lift.start,state.weights[id]-lift.inc));
+    if(liftComplete(e)&&isMutableWeight(block,id)) state.weights[id]=round(Math.max(floor,state.weights[id]-inc));
     e.setsDone=Array(sc.sets).fill(false);
     e.pr=false; e.failed=true;
     state.fails[id]=(state.fails[id]||0)+1;
     if(state.fails[id]>=3){
-      const nw=Math.max(lift.start,loadable(round(state.weights[id]*0.9)));
-      state.weights[id]=nw; state.fails[id]=0;
-      deloadMsg[id]='Three misses on '+lift.name.toLowerCase()+'. Deloaded 10% to '+nw+' kg — build back up.';
+      const cur=isMutableWeight(block,id)?state.weights[id]:e.w;
+      const nw=Math.max(floor,loadable(round(cur*0.9)));
+      if(isMutableWeight(block,id)) state.weights[id]=nw; else e.w=nw;
+      state.fails[id]=0;
+      state.deloadCount[id]=(state.deloadCount[id]||0)+1;
+      deloadMsg[id]='Three misses on '+def.name.toLowerCase()+'. Deloaded 10% to '+nw+' kg — build back up.';
     }
   }
-  await save(); render(m,d);
+  await save(); render(iso);
 }
 
 /* ============ rest timer ============ */
@@ -561,10 +690,10 @@ document.getElementById('restSkip').onclick=()=>{ clearInterval(restInt); restEl
 /* ============ render: today ============ */
 let selected=null;
 
-function bwBlock(s,m,d){
+function bwBlock(s,iso){
   let h='<p class="bwlabel">Bodyweight · total reps across 3 sets</p>';
   BODYWEIGHT.forEach(b=>{
-    const last=lastBW(m,d,b.id);
+    const last=lastBW(iso,b.id);
     const cur=s.bw[b.id];
     const val=(cur!==''&&cur!==undefined)?cur:(last!==null?last:'');
     const best=state.bwBest[b.id]||0;
@@ -580,26 +709,41 @@ function bwBlock(s,m,d){
   return h;
 }
 
-function render(m,d){
-  selected={m,d};
-  const p=document.getElementById('panel');
-  let h='<p class="dates">'+label(m,d)+'</p>';
+function updateChrome(block){
+  document.getElementById('eyebrow').textContent=block.label+' · '+fmtRange(block.start,block.end);
+  document.title=block.label;
+  document.getElementById('phaseScale').style.display=block.phaseSchedule?'':'none';
+}
 
-  if(!inBlock(m,d)){
-    h+='<h3>Before the block</h3><p class="sub">Block 01 starts Wednesday 19 August.</p>';
-  } else if(isGym(m,d)){
-    const sc=scheme(m,d), s=session(m,d);
-    h+='<h3>Gym · Full body</h3><p class="sub">Phase 0'+sc.p+' · '+sc.name+' — '+sc.txt+' on all four lifts. Tap each set as you finish it.</p>';
-    LIFTS.forEach(l=>{
-      const e=s[l.id], last=lastDone(m,d,l.id), best=state.best[l.id]||0;
+function render(iso){
+  selected=iso;
+  const activeToday=blockForDate(todayISO());
+  if(!activeToday){ renderTransition(latestBlock()); return; }
+  renderDay(iso, blockForDate(iso)||activeToday);
+}
+
+function renderDay(iso,block){
+  const p=document.getElementById('panel');
+  let h='<p class="dates">'+fmtLabel(iso)+'</p>';
+
+  if(iso<block.start){
+    h+='<h3>Before the block</h3><p class="sub">'+block.label+' starts '+fmtLabel(block.start)+'.</p>';
+  } else if(iso>block.end){
+    h+='<h3>Block complete</h3><p class="sub">'+block.label+' ended '+fmtLabel(block.end)+'.</p>';
+  } else if(isGymDay(iso,block)){
+    const s=session(iso,block);
+    h+='<h3>Gym · Full body</h3><p class="sub">Tap each set as you finish it.</p>';
+    LIFT_IDS.forEach(id=>{
+      const def=LIFT_DEFS[id], sc=liftPlan(id,iso,block).scheme;
+      const e=s[id], last=lastDone(iso,id), best=state.best[id]||0;
       const complete=liftComplete(e);
-      let meta=sc.txt;
+      let meta=sc.name+' · '+sc.txt;
       if(last!==null) meta+=' · last '+last+' kg';
       const topReps=sc.ramp?sc.ramp[sc.ramp.length-1][1]:sc.reps;
       const est=e1rm(e.w,topReps);
       meta+=' · est 1RM '+est+' kg';
       if(best>0) meta+=' (best '+best+')';
-      const fails=state.fails[l.id]||0;
+      const fails=state.fails[id]||0;
       if(fails>0&&!complete) meta+=' · ✗'+fails+' of 3';
 
       let why='';
@@ -612,7 +756,7 @@ function render(m,d){
       let setsRow='<div class="setsrow">';
       for(let i=0;i<sc.sets;i++){
         const spec=setSpec(sc,e.w,i), on=e.setsDone[i];
-        setsRow+='<button type="button" class="setbox'+(on?' on':'')+'" data-l="'+l.id+'" data-i="'+i+'" '+
+        setsRow+='<button type="button" class="setbox'+(on?' on':'')+'" data-l="'+id+'" data-i="'+i+'" '+
           'aria-pressed="'+on+'"'+(e.failed?' disabled':'')+'>'+
           '<span class="sn">'+(on?'✓':(i+1))+'</span><span class="sw">'+spec.w+'×'+spec.reps+'</span></button>';
       }
@@ -625,42 +769,42 @@ function render(m,d){
       }
       extra+='<div class="plates">'+(sc.ramp?'Top set: ':'')+plateStr(e.w)+'</div>';
       extra+='<details class="ss"><summary>Superset options</summary><ul>'+
-        SUPERSETS[l.id].map(x=>'<li>'+x+'</li>').join('')+'</ul></details>';
+        def.supersets.map(x=>'<li>'+x+'</li>').join('')+'</ul></details>';
 
       h+='<div class="lift'+(e.failed?' is-locked':'')+'"><div class="lrow">'+
-         '<div class="meta"><div class="nm">'+l.name+(e.pr?'<span class="prbadge">PR</span>':'')+'</div>'+
+         '<div class="meta"><div class="nm">'+def.name+(e.pr?'<span class="prbadge">PR</span>':'')+'</div>'+
          '<div class="pr">'+meta+'</div>'+(why?'<div class="why">'+why+'</div>':'')+'</div>'+
-         '<div><input class="wtin" type="number" step="2.5" min="0" value="'+e.w+'" data-l="'+l.id+'" aria-label="'+l.name+' kg"><span class="unit">kg</span></div>'+
-         '<button class="fail" type="button" aria-pressed="'+e.failed+'" data-f="'+l.id+'" aria-label="Missed">'+(e.failed?'✗':'')+'</button>'+
+         '<div><input class="wtin" type="number" step="2.5" min="0" value="'+e.w+'" data-l="'+id+'" aria-label="'+def.name+' kg"><span class="unit">kg</span></div>'+
+         '<button class="fail" type="button" aria-pressed="'+e.failed+'" data-f="'+id+'" aria-label="Missed">'+(e.failed?'✗':'')+'</button>'+
          '</div>'+setsRow+extra+'</div>';
-      if(deloadMsg[l.id]) h+='<div class="deload"><b>Deload.</b> '+deloadMsg[l.id]+'</div>';
+      if(deloadMsg[id]) h+='<div class="deload"><b>Deload.</b> '+deloadMsg[id]+'</div>';
     });
 
-    if(LIFTS.every(l=>liftComplete(s[l.id]))){
+    if(LIFT_IDS.every(id=>liftComplete(s[id]))){
       let prCount=0, rows='';
-      LIFTS.forEach(l=>{
-        const e=s[l.id], last=lastDone(m,d,l.id);
+      LIFT_IDS.forEach(id=>{
+        const def=LIFT_DEFS[id], e=s[id], last=lastDone(iso,id);
         let delta;
         if(last===null) delta='started at '+e.w+' kg';
         else if(round(e.w)>round(last)) delta='+'+round(e.w-last)+' kg';
         else delta='steady';
         if(e.pr) prCount++;
-        rows+='<div class="hrow"><span class="hn">'+l.name+'</span><span class="hv">'+delta+(e.pr?' <span class="prbadge">PR</span>':'')+'</span></div>';
+        rows+='<div class="hrow"><span class="hn">'+def.name+'</span><span class="hv">'+delta+(e.pr?' <span class="prbadge">PR</span>':'')+'</span></div>';
       });
       h+='<div class="complete"><p class="clabel">Session complete</p>'+
          '<p class="csub">4 / 4 lifts completed'+(prCount?' · '+prCount+' new PR'+(prCount>1?'s':''):'')+'</p>'+
          rows+'<p class="cnext">Next session is ready.</p></div>';
     }
-    h+=bwBlock(s,m,d);
+    h+=bwBlock(s,iso);
     h+='<p class="seclabel">Session note</p>'+
        '<textarea class="note" placeholder="How it moved. Anything that hurt. Sleep, food, work that day.">'+escapeHtml(s.note||'')+'</textarea>';
-    h+='<p class="hint">Every set clean adds <b>+'+LIFTS[0].inc+' kg</b> lower / <b>+'+LIFTS[1].inc+' kg</b> upper next session. ✗ holds the weight. Three ✗ deloads it 10%.</p>';
-  } else if(dow(m,d)===6){
+    h+='<p class="hint">Tap each set as you finish it. ✗ holds the weight. Three ✗ triggers a 10% deload.</p>';
+  } else if(isRestDay(iso)){
     h+='<h3>Rest</h3><p class="sub">Nothing. You worked five days with your body this week — that is the load underneath all of this.</p>';
   } else {
-    const s=session(m,d);
+    const s=session(iso,block);
     h+='<h3>Home · Light</h3><p class="sub">5–10 minutes, sub-fatiguing.</p>';
-    h+=bwBlock(s,m,d);
+    h+=bwBlock(s,iso);
     h+='<div class="lift"><div class="lrow"><div class="meta"><div class="nm">Mobility</div>'+
        '<div class="pr">Hips · shoulders · ankles — 5 min</div></div></div></div>';
     h+='<p class="seclabel">Session note</p>'+
@@ -670,67 +814,170 @@ function render(m,d){
 
   p.innerHTML=h;
 
-  p.querySelectorAll('.setbox').forEach(b=>b.onclick=()=>toggleSet(m,d,b.dataset.l,Number(b.dataset.i)));
-  p.querySelectorAll('.fail').forEach(b=>b.onclick=()=>markFail(m,d,b.dataset.f));
+  p.querySelectorAll('.setbox').forEach(b=>b.onclick=()=>toggleSet(iso,b.dataset.l,Number(b.dataset.i)));
+  p.querySelectorAll('.fail').forEach(b=>b.onclick=()=>markFail(iso,b.dataset.f));
   p.querySelectorAll('.wtin').forEach(i=>i.onchange=async()=>{
     const v=parseFloat(i.value); if(isNaN(v)||v<0) return;
-    const s=session(m,d); s[i.dataset.l].w=round(v); state.weights[i.dataset.l]=round(v);
-    await save(); render(m,d);
+    const s=session(iso,block); s[i.dataset.l].w=round(v);
+    if(isMutableWeight(block,i.dataset.l)) state.weights[i.dataset.l]=round(v);
+    await save(); render(iso);
   });
   p.querySelectorAll('.bwin').forEach(i=>i.onchange=async()=>{
-    const s=session(m,d), raw=i.value.trim();
+    const s=session(iso,block), raw=i.value.trim();
     const v=raw===''?'':Math.max(0,parseInt(raw,10)||0);
     s.bw[i.dataset.b]=v;
     if(v!==''&&v>(state.bwBest[i.dataset.b]||0)) state.bwBest[i.dataset.b]=v;
-    await save(); render(m,d);
+    await save(); render(iso);
   });
   const ta=p.querySelector('textarea.note');
-  if(ta) ta.onchange=async()=>{ session(m,d).note=ta.value; await save(); };
+  if(ta) ta.onchange=async()=>{ session(iso,block).note=ta.value; await save(); };
 
-  buildAll(); stats();
+  updateChrome(block);
+  buildAll(block); stats(block);
+}
+
+/* ============ next-block proposal ============ */
+function computeGrowthPct(id,block){
+  const startB=(block.startBest&&block.startBest[id])||0;
+  const endB=state.best[id]||0;
+  if(startB<=0) return endB>0?100:0;
+  return Math.round((endB-startB)/startB*100);
+}
+// Never downgrades. Escalates one level (linear->weekly->block) when a lift stalled —
+// 2+ deloads in the block, or under 5% e1RM growth across it.
+function decideNextMode(prevMode,growthPct,deloads){
+  if(prevMode==='block') return 'block';
+  const stalled=deloads>=2||growthPct<5;
+  if(!stalled) return prevMode;
+  return prevMode==='linear'?'weekly':'block';
+}
+function proposeNextBlock(prevBlock){
+  const start=addDaysISO(prevBlock.end,1);
+  const end=addDaysISO(start,BLOCK_WEEKS*7-1);
+  const lifts={}, startBest={};
+  LIFT_IDS.forEach(id=>{
+    const def=LIFT_DEFS[id];
+    const prevMode=prevBlock.phaseSchedule?'linear':prevBlock.lifts[id].mode;
+    const growth=computeGrowthPct(id,prevBlock);
+    const deloads=state.deloadCount[id]||0;
+    const nextMode=decideNextMode(prevMode,growth,deloads);
+    const changed=nextMode!==prevMode;
+    let baseW=state.weights[id];
+    if(changed) baseW=baseW*0.93;                 // back off ~7% when stepping up to a new stimulus
+    lifts[id]={startWeight:loadable(round(baseW)), mode:nextMode, inc:def.inc, changed, growth, deloads};
+    startBest[id]=state.best[id]||0;
+  });
+  const n=state.blocks.length+1;
+  return {id:'block'+pad2(n), label:'Block '+pad2(n), start, end, gymDays:prevBlock.gymDays,
+          phaseSchedule:false, lifts, startBest};
+}
+function renderTransition(prevBlock){
+  const p=document.getElementById('panel');
+  const proposal=proposeNextBlock(prevBlock);
+  let h='<div class="propose"><p class="plabel">Block complete</p>'+
+    '<h3>'+prevBlock.label+' is done</h3>'+
+    '<p class="sub">Proposed next block, based on how this one went:</p>';
+  LIFT_IDS.forEach(id=>{
+    const def=LIFT_DEFS[id], pl=proposal.lifts[id];
+    const modeLabel={linear:'Linear',weekly:'Weekly',block:'Block'}[pl.mode];
+    const why=pl.changed
+      ? (pl.deloads>=2?pl.deloads+' deloads this block':'growth slowed to '+pl.growth+'%')
+      : 'still progressing — '+pl.growth+'% growth';
+    h+='<div class="prow"><span class="pn">'+def.name+'<span class="modechip'+(pl.changed?' up':'')+'">'+modeLabel+'</span></span>'+
+       '<span class="pv">'+pl.startWeight+' kg<br>'+why+'</span></div>';
+  });
+  h+='<div class="pdates">'+
+     '<label>Start<input type="date" id="nbStart" value="'+proposal.start+'"></label>'+
+     '<label>End<input type="date" id="nbEnd" value="'+proposal.end+'"></label>'+
+     '</div>'+
+     '<button class="startbtn" id="startBlockBtn" type="button">Start '+proposal.label+'</button>'+
+     '</div>';
+  p.innerHTML=h;
+
+  document.getElementById('startBlockBtn').onclick=async()=>{
+    const startEl=document.getElementById('nbStart'), endEl=document.getElementById('nbEnd');
+    if(startEl.value) proposal.start=startEl.value;
+    if(endEl.value) proposal.end=endEl.value;
+    await startBlock(proposal);
+  };
+
+  updateChrome(prevBlock);
+  buildAll(prevBlock); stats(prevBlock);
+}
+async function startBlock(block){
+  state.blocks.push(block);
+  LIFT_IDS.forEach(id=>{
+    state.weights[id]=block.lifts[id].startWeight;
+    state.deloadCount[id]=0;
+  });
+  await save();
+  render(todayISO());
 }
 
 /* ============ calendar ============ */
-function buildMonth(id,days,start,m){
-  const g=document.getElementById(id); g.innerHTML='';
+function daysInMonth(y,mo){ return new Date(y,mo+1,0).getDate(); }
+function firstWeekdayMon0(y,mo){ return (new Date(y,mo,1).getDay()+6)%7; }
+function monthsSpanned(block){
+  const a=parseISO(block.start), b=parseISO(block.end);
+  const out=[]; let y=a.getFullYear(), mo=a.getMonth();
+  while(y<b.getFullYear()||(y===b.getFullYear()&&mo<=b.getMonth())){
+    out.push([y,mo]); mo++; if(mo>11){mo=0;y++;}
+  }
+  return out;
+}
+function buildMonth(y,mo,block){
+  const g=document.getElementById('cal-'+y+'-'+mo); if(!g) return;
+  g.innerHTML='';
+  const days=daysInMonth(y,mo), start=firstWeekdayMon0(y,mo);
   for(let i=0;i<start;i++){ const e=document.createElement('div'); e.className='cell empty'; g.appendChild(e); }
   for(let d=1;d<=days;d++){
-    const w=(start+d-1)%7, active=inBlock(m,d);
+    const iso=y+'-'+pad2(mo+1)+'-'+pad2(d);
+    const active=iso>=block.start&&iso<=block.end;
     let cls='cell', lab='', el;
     if(!active) cls+=' rest-d';
-    else if(isGym(m,d)){
-      cls+=' gym p'+phase(m,d); lab='Gym';
-      const s=state.sessions[key(m,d)];
-      if(s&&LIFTS.every(l=>s[l.id]&&(liftComplete(s[l.id])||s[l.id].failed))) cls+=' doneMark';
+    else if(isGymDay(iso,block)){
+      cls+=' gym p'+(block.phaseSchedule?phaseScheme(iso).p:2); lab='Gym';
+      const s=state.sessions[iso];
+      if(s&&LIFT_IDS.every(id=>s[id]&&(liftComplete(s[id])||s[id].failed))) cls+=' doneMark';
     }
-    else if(w===6){ cls+=' rest-d'; lab='Rest'; }
+    else if(isRestDay(iso)){ cls+=' rest-d'; lab='Rest'; }
     else { cls+=' home'; lab='Home'; }
-    if(m===TODAY.m&&d===TODAY.d) cls+=' today';
-    if(selected&&selected.m===m&&selected.d===d) cls+=' sel';
-    if(active){ el=document.createElement('button'); el.type='button'; el.onclick=()=>render(m,d); }
+    if(iso===todayISO()) cls+=' today';
+    if(selected===iso) cls+=' sel';
+    if(active){ el=document.createElement('button'); el.type='button'; el.onclick=()=>render(iso); }
     else el=document.createElement('div');
     el.className=cls;
     el.innerHTML='<span class="n">'+d+'</span><span class="t">'+lab+'</span>';
     g.appendChild(el);
   }
 }
-function buildAll(){ buildMonth('aug',31,AUG_START,8); buildMonth('sep',30,SEP_START,9); }
+function buildAll(block){
+  const wrap=document.getElementById('monthsWrap');
+  const months=monthsSpanned(block);
+  wrap.innerHTML=months.map(([y,mo])=>
+    '<section><h2>'+MONTH_NAMES[mo]+' '+y+'</h2>'+
+    '<div class="dow"><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span></div>'+
+    '<div class="grid" id="cal-'+y+'-'+mo+'"></div></section>'
+  ).join('');
+  months.forEach(([y,mo])=>buildMonth(y,mo,block));
+}
 
 /* ============ stats ============ */
-function stats(){
+function stats(block){
   let sched=0, done=0;
-  [[8,31],[9,30]].forEach(([m,days])=>{
-    for(let d=1;d<=days;d++){
-      if(!inBlock(m,d)||!isGym(m,d)) continue;
-      if(dv(m,d)>dv(TODAY.m,TODAY.d)) continue;
+  const today=todayISO();
+  let cur=block.start;
+  while(cur<=block.end){
+    if(cur<=today&&isGymDay(cur,block)){
       sched++;
-      const s=state.sessions[key(m,d)];
-      if(s&&LIFTS.every(l=>s[l.id]&&(liftComplete(s[l.id])||s[l.id].failed))) done++;
+      const s=state.sessions[cur];
+      if(s&&LIFT_IDS.every(id=>s[id]&&(liftComplete(s[id])||s[id].failed))) done++;
     }
-  });
+    cur=addDaysISO(cur,1);
+  }
   const cEl=document.getElementById('consist');
   if(done===0){
-    cEl.innerHTML='<div><div class="ready">Block 01</div><div class="readysub">Ready to train</div></div>';
+    cEl.innerHTML='<div><div class="ready">'+block.label+'</div><div class="readysub">Ready to train</div></div>';
   }else{
     const pct=sched?Math.round(done/sched*100):0;
     cEl.innerHTML='<span class="big">'+done+'</span><span class="lbl">of <b>'+sched+'</b> sessions logged so far</span>'+
@@ -739,16 +986,16 @@ function stats(){
 
   const t=document.getElementById('targets');
   let h='';
-  LIFTS.forEach(l=>{
-    const cur=state.best[l.id]||0;
-    const pct=Math.min(100,Math.round(Math.max(0,cur-l.start)/(l.target-l.start)*100));
-    h+='<div class="tgrow"><div class="tgtop"><b>'+l.name+'</b><span>'+(cur||'—')+' / '+l.target+' kg</span></div>'+
+  LIFT_IDS.forEach(id=>{
+    const def=LIFT_DEFS[id], curBest=state.best[id]||0, base=state.blocks[0].lifts[id].startWeight;
+    const pct=Math.min(100,Math.round(Math.max(0,curBest-base)/(def.target-base)*100));
+    h+='<div class="tgrow"><div class="tgtop"><b>'+def.name+'</b><span>'+(curBest||'—')+' / '+def.target+' kg</span></div>'+
        '<div class="tgbar"><i style="width:'+pct+'%"></i></div></div>';
   });
   BODYWEIGHT.filter(b=>b.target).forEach(b=>{
-    const cur=state.bwBest[b.id]||0;
-    const pct=Math.min(100,Math.round(cur/b.target*100));
-    h+='<div class="tgrow"><div class="tgtop"><b>'+b.name+'</b><span>'+(cur||'—')+' / '+b.target+' reps</span></div>'+
+    const curBw=state.bwBest[b.id]||0;
+    const pct=Math.min(100,Math.round(curBw/b.target*100));
+    h+='<div class="tgrow"><div class="tgtop"><b>'+b.name+'</b><span>'+(curBw||'—')+' / '+b.target+' reps</span></div>'+
        '<div class="tgbar"><i style="width:'+pct+'%"></i></div></div>';
   });
   h+='<p class="pr" style="margin-top:12px">Barbell bars track best estimated 1RM (Epley), not a tested max.</p>';
@@ -760,7 +1007,7 @@ function renderHistory(){
   const el=document.getElementById('historyView');
   const keys=Object.keys(state.sessions).filter(k=>{
     const s=state.sessions[k];
-    const anyLift=LIFTS.some(l=>s[l.id]&&(liftComplete(s[l.id])||s[l.id].failed));
+    const anyLift=LIFT_IDS.some(id=>s[id]&&(liftComplete(s[id])||s[id].failed));
     const anyBW=BODYWEIGHT.some(b=>s.bw&&s.bw[b.id]!==''&&s.bw[b.id]!==undefined);
     const anyNote=s.note&&s.note.trim()!=='';
     return anyLift||anyBW||anyNote;
@@ -769,21 +1016,18 @@ function renderHistory(){
     el.innerHTML='<p class="hempty">Nothing logged yet. Your first session shows up here the moment you tick a set.</p>';
     return;
   }
-  keys.sort((a,b)=>{
-    const [am,ad]=a.split('-').map(Number), [bm,bd]=b.split('-').map(Number);
-    return dv(bm,bd)-dv(am,ad);
-  });
+  keys.sort((a,b)=>b<a?-1:b>a?1:0);   // ISO strings sort chronologically; newest first
   let h='';
-  keys.forEach(k=>{
-    const [m,d]=k.split('-').map(Number), s=state.sessions[k], gym=isGym(m,d);
-    h+='<div class="hcard"><p class="hdate">'+label(m,d)+' · '+(gym?'Gym':'Home')+'</p>';
+  keys.forEach(iso=>{
+    const s=state.sessions[iso], block=blockForDate(iso), gym=block?isGymDay(iso,block):false;
+    h+='<div class="hcard"><p class="hdate">'+fmtLabel(iso)+' · '+(gym?'Gym':'Home')+'</p>';
     if(gym){
-      LIFTS.forEach(l=>{
-        const e=s[l.id]; if(!e) return;
+      LIFT_IDS.forEach(id=>{
+        const def=LIFT_DEFS[id], e=s[id]; if(!e) return;
         if(liftComplete(e)){
-          h+='<div class="hrow"><span class="hn">'+l.name+'</span><span class="hv">'+e.w+' kg'+(e.pr?' <span class="prbadge">PR</span>':'')+'</span></div>';
+          h+='<div class="hrow"><span class="hn">'+def.name+'</span><span class="hv">'+e.w+' kg'+(e.pr?' <span class="prbadge">PR</span>':'')+'</span></div>';
         } else if(e.failed){
-          h+='<div class="hrow"><span class="hn">'+l.name+'</span><span class="hv miss">missed at '+e.w+' kg</span></div>';
+          h+='<div class="hrow"><span class="hn">'+def.name+'</span><span class="hv miss">missed at '+e.w+' kg</span></div>';
         }
       });
     }
@@ -817,7 +1061,7 @@ document.getElementById('export').onclick=()=>{
   const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
-  a.download='block01-backup-'+new Date().toISOString().slice(0,10)+'.json';
+  a.download='workout-backup-'+new Date().toISOString().slice(0,10)+'.json';
   a.click(); URL.revokeObjectURL(a.href);
 };
 document.getElementById('importBtn').onclick=()=>document.getElementById('importFile').click();
@@ -825,27 +1069,20 @@ document.getElementById('importFile').onchange=e=>{
   const f=e.target.files[0]; if(!f) return;
   const r=new FileReader();
   r.onload=async()=>{
-    try{ state=JSON.parse(r.result); await save(); render(TODAY.m,TODAY.d); }
+    try{ state=JSON.parse(r.result); ensureShape(); await save(); render(todayISO()); }
     catch(err){ alert('That file could not be read.'); }
   };
   r.readAsText(f);
 };
 document.getElementById('danger').onclick=async()=>{
   if(!confirm('Delete all logged sessions and progress? This cannot be undone.')) return;
-  freshState(); deloadMsg={}; await save(); render(TODAY.m,TODAY.d);
+  freshState(); deloadMsg={}; await save(); render(todayISO());
 };
 
 /* ============ init ============ */
 (async function(){
   await load();
-  LIFTS.forEach(l=>{
-    if(state.weights[l.id]===undefined) state.weights[l.id]=l.start;
-    if(state.fails[l.id]===undefined) state.fails[l.id]=0;
-    if(state.best[l.id]===undefined) state.best[l.id]=0;
-  });
-  if(!state.bwBest) state.bwBest={};
-  BODYWEIGHT.forEach(b=>{ if(state.bwBest[b.id]===undefined) state.bwBest[b.id]=0; });
-  render(TODAY.m,TODAY.d);
+  render(todayISO());
 
   /* ---- update banner ---- */
   if('serviceWorker' in navigator){
