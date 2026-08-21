@@ -6,6 +6,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#161C22">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
 <title>Block 01 — Strength</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -320,7 +323,9 @@
 
 <script>
 /* ============ config ============ */
-const AUG_START=5, SEP_START=1, TODAY={m:8,d:19}, KEY='block01v3';
+const AUG_START=5, SEP_START=1, KEY='block01v3';
+const _now=new Date();
+const TODAY={m:_now.getMonth()+1, d:_now.getDate()};
 const BAR=20, PLATES=[25,20,15,10,5,2.5,1.25];
 
 const LIFTS=[
@@ -825,6 +830,10 @@ document.getElementById('danger').onclick=async()=>{
   if(!state.bwBest) state.bwBest={};
   BODYWEIGHT.forEach(b=>{ if(state.bwBest[b.id]===undefined) state.bwBest[b.id]=0; });
   render(TODAY.m,TODAY.d);
+
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  }
 })();
 </script>
 </body>
