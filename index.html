@@ -285,6 +285,10 @@
   .fbtns button:hover{color:var(--plaster);border-color:var(--zinc);}
   #danger:hover{color:var(--oxide);border-color:var(--oxide);}
   #savenote{display:block;margin-top:10px;color:var(--oxide);}
+  .rngToggle{display:flex;align-items:center;gap:7px;margin-top:12px;cursor:pointer;
+    font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.06em;
+    text-transform:uppercase;color:var(--zinc);}
+  .rngToggle input{accent-color:var(--chip-2);width:14px;height:14px;}
 
   /* ---- body tab ---- */
   .bodyWrap{display:flex;flex-direction:column;align-items:center;gap:20px;margin-bottom:8px;}
@@ -491,6 +495,7 @@
 
   <footer>
     <span id="savenote"></span>
+    <label class="rngToggle"><input type="checkbox" id="randomTips" checked>Random rest-time exercise picks</label>
     <div class="fbtns">
       <button id="export" type="button">Export backup</button>
       <button id="importBtn" type="button">Import backup</button>
@@ -604,7 +609,7 @@ const BLOCK01={
 /* ============ state ============ */
 let state={weights:{},fails:{},best:{},bwBest:{},deloadCount:{},sessions:{},blocks:[],attrs:{},cardio:[]};
 function freshState(){
-  state={weights:{},fails:{},best:{},bwBest:{},deloadCount:{},sessions:{},blocks:[BLOCK01],attrs:{},cardio:[]};
+  state={weights:{},fails:{},best:{},bwBest:{},deloadCount:{},sessions:{},blocks:[BLOCK01],attrs:{},cardio:[],randomTips:true};
   LIFT_IDS.forEach(id=>{
     state.weights[id]=BLOCK01.lifts[id].startWeight;
     state.fails[id]=0; state.best[id]=0; state.deloadCount[id]=0;
@@ -766,6 +771,7 @@ function ensureShape(){
   if(!state.attrs) state.attrs={};
   ATTR_DEFS.forEach(a=>{ if(!state.attrs[a.id]) state.attrs[a.id]=[]; });
   if(!state.cardio) state.cardio=[];
+  if(state.randomTips===undefined) state.randomTips=true;
 }
 async function load(){
   const fresh=await readKey(KEY);
@@ -889,21 +895,31 @@ async function markFail(iso,id){
 /* ============ rest timer ============ */
 let restInt=null, restLeft=0;
 const restEl=document.getElementById('rest'), restT=document.getElementById('restT'), restL=document.getElementById('restL'), restTip=document.getElementById('restTip');
-// In-memory only, not persisted — just enough to rotate through a lift's superset pool
-// instead of showing the identical exercise every rest. Resets on reload; that's fine.
+// In-memory only, not persisted — tracks the last shown index per lift so the next pick
+// (random or sequential) never immediately repeats it. Resets on reload; that's fine.
 let restTipIdx={};
+function pickTip(lift){
+  const pool=accessoriesFor(lift.supersetTags||[]);
+  if(!pool.length) return '';
+  const last=restTipIdx[lift.name];
+  let idx;
+  if(state.randomTips){
+    if(pool.length===1) idx=0;
+    else{ do{ idx=Math.floor(Math.random()*pool.length); }while(idx===last); }
+  }else{
+    idx=((last===undefined?-1:last)+1)%pool.length;
+  }
+  restTipIdx[lift.name]=idx;
+  return pool[idx];
+}
 function fmt(s){ return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
 function startRest(lift){
   clearInterval(restInt);
   restLeft=lift.rest; restEl.classList.add('on'); restEl.classList.remove('done');
   restL.textContent='Rest · '+lift.name;
   restT.textContent=fmt(restLeft);
-  const pool=accessoriesFor(lift.supersetTags||[]);
-  if(pool.length){
-    const idx=restTipIdx[lift.name]||0;
-    restTip.innerHTML='Try: <b>'+pool[idx%pool.length]+'</b>';
-    restTipIdx[lift.name]=idx+1;
-  } else restTip.textContent='';
+  const tip=pickTip(lift);
+  restTip.innerHTML=tip?'Try: <b>'+tip+'</b>':'';
   restInt=setInterval(()=>{
     restLeft--;
     restT.textContent=fmt(Math.max(0,restLeft));
@@ -1590,6 +1606,10 @@ document.getElementById('danger').onclick=async()=>{
 (async function(){
   await load();
   render(todayISO());
+
+  const rngBox=document.getElementById('randomTips');
+  rngBox.checked=state.randomTips;
+  rngBox.onchange=async()=>{ state.randomTips=rngBox.checked; await save(); };
 
   /* ---- update banner ---- */
   if('serviceWorker' in navigator){
