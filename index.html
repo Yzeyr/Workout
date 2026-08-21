@@ -303,6 +303,36 @@
     text-transform:uppercase;color:var(--zinc);}
   .recCard .rv{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:18px;margin-top:2px;}
 
+  /* ---- history: highlights ---- */
+  .hlGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:26px;}
+  .hlCard{border:1px solid var(--line);padding:12px 13px;border-radius:2px;background:var(--panel);}
+  .hlCard.wide{grid-column:1 / -1;}
+  .hlIcon{font-size:15px;line-height:1;}
+  .hlName{font-family:"IBM Plex Mono",monospace;font-size:9px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--zinc);margin-top:6px;}
+  .hlVal{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:24px;
+    line-height:1.05;margin-top:3px;}
+  .hlSub{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--chip-1);margin-top:3px;}
+
+  /* ---- history: consistency heatmap ---- */
+  .hmWrap{overflow-x:auto;padding-bottom:6px;margin-bottom:8px;}
+  .hmGrid{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,11px);
+    gap:3px;width:max-content;}
+  .hmCell{width:11px;height:11px;border-radius:1px;background:rgba(232,228,220,.05);}
+  .hmCell.done{background:var(--chip-2);}
+  .hmCell.partial{background:var(--chip-3);}
+  .hmCell.missed{background:var(--oxide);}
+  .hmCell.home{background:rgba(232,228,220,.13);}
+  .hmCell.today{outline:1.5px solid var(--plaster);outline-offset:1px;}
+  .hmMonths{display:grid;grid-auto-flow:column;gap:3px;width:max-content;margin-bottom:5px;
+    font-family:"IBM Plex Mono",monospace;font-size:8.5px;color:var(--zinc);}
+  /* labels are wider than their 11px column — let them run over the empty ones beside them */
+  .hmMonths span{width:11px;overflow:visible;white-space:nowrap;}
+  .hmKey{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:26px;
+    font-family:"IBM Plex Mono",monospace;font-size:9.5px;letter-spacing:.05em;
+    text-transform:uppercase;color:var(--zinc);}
+  .hmKey i{display:inline-block;width:9px;height:9px;margin-right:5px;vertical-align:-1px;border-radius:1px;}
+
   /* ---- cardio tab ---- */
   .cardioForm{border:1px solid var(--line);background:var(--panel);padding:16px;margin-bottom:24px;}
   .cardioForm .crow{display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap;}
@@ -1196,6 +1226,122 @@ function stats(block){
 }
 
 /* ============ history ============ */
+// What a single calendar day amounts to, for the heatmap and the streak count.
+// 'missed' only ever applies to a past scheduled gym day — a future one is just 'future'.
+function dayState(iso){
+  const block=blockForDate(iso);
+  if(!block) return 'off';
+  if(!isGymDay(iso,block)) return isRestDay(iso)?'rest':'home';
+  const s=state.sessions[iso];
+  const past=iso<todayISO();
+  if(!s) return past?'missed':'future';
+  const logged=LIFT_IDS.filter(id=>s[id]&&(liftComplete(s[id])||s[id].failed)).length;
+  if(logged===LIFT_IDS.length) return 'done';
+  if(logged>0) return 'partial';
+  return past?'missed':'future';
+}
+// Longest run of consecutive scheduled gym days completed. Deliberately carries across
+// block boundaries — a streak doesn't reset just because a new block started.
+function longestStreak(){
+  let best=0,cur=0;
+  const today=todayISO();
+  state.blocks.forEach(block=>{
+    let d=block.start;
+    while(d<=block.end&&d<=today){
+      if(isGymDay(d,block)){
+        const st=dayState(d);
+        if(st==='done'){ cur++; if(cur>best) best=cur; }
+        else if(st==='missed'||st==='partial') cur=0;
+      }
+      d=addDaysISO(d,1);
+    }
+  });
+  return best;
+}
+// One chronological pass over logged sessions feeding every highlight card, so the
+// numbers can't disagree with each other the way four separate scans could.
+function computeHighlights(){
+  let heaviest={w:0,lift:null}, jump={d:0,lift:null};
+  let sessionCount=0, setCount=0;
+  const firstClean={}, lastClean={};
+  Object.keys(state.sessions).sort().forEach(iso=>{
+    const s=state.sessions[iso], block=blockForDate(iso);
+    if(!block||!isGymDay(iso,block)) return;
+    let anyLogged=false;
+    LIFT_IDS.forEach(id=>{
+      const e=s[id]; if(!e) return;
+      if(e.failed) anyLogged=true;
+      if(!liftComplete(e)) return;
+      anyLogged=true;
+      setCount+=e.setsDone.length;
+      if(e.w>heaviest.w) heaviest={w:e.w,lift:id};
+      if(firstClean[id]===undefined) firstClean[id]=e.w;
+      if(lastClean[id]!==undefined){
+        const d=round1(e.w-lastClean[id]);
+        if(d>jump.d) jump={d,lift:id};
+      }
+      lastClean[id]=e.w;
+    });
+    if(anyLogged) sessionCount++;
+  });
+  let improve={d:0,lift:null}, totalGain=0;
+  LIFT_IDS.forEach(id=>{
+    if(firstClean[id]===undefined) return;
+    const d=round1(lastClean[id]-firstClean[id]);
+    if(d>0) totalGain+=d;
+    if(d>improve.d) improve={d,lift:id};
+  });
+  return {heaviest,jump,improve,totalGain:round1(totalGain),sessionCount,setCount,streak:longestStreak()};
+}
+function renderHighlights(){
+  const hl=computeHighlights();
+  const nm=id=>id?LIFT_DEFS[id].name:'—';
+  const card=(icon,name,val,sub,wide)=>
+    '<div class="hlCard'+(wide?' wide':'')+'"><div class="hlIcon">'+icon+'</div>'+
+    '<div class="hlName">'+name+'</div><div class="hlVal">'+val+'</div>'+
+    (sub?'<div class="hlSub">'+sub+'</div>':'')+'</div>';
+  return '<div class="hlGrid">'+
+    card('🏆','Heaviest',hl.heaviest.w?hl.heaviest.w+' kg':'—',nm(hl.heaviest.lift))+
+    card('📈','Biggest gain',hl.improve.d?'+'+hl.improve.d+' kg':'—',nm(hl.improve.lift))+
+    card('🔥','Biggest jump',hl.jump.d?'+'+hl.jump.d+' kg':'—',nm(hl.jump.lift))+
+    card('💪','Longest streak',hl.streak||'—',hl.streak===1?'session in a row':'sessions in a row')+
+    card('⚡','Total load gained',hl.totalGain?'+'+hl.totalGain+' kg':'—',
+      hl.sessionCount+' sessions · '+hl.setCount+' sets completed',true)+
+    '</div>';
+}
+function renderHeatmap(){
+  const first=state.blocks[0].start, last=latestBlock().end;
+  const cols=[]; let d=weekStartOf(first);
+  while(d<=last){
+    const week=[]; for(let i=0;i<7;i++) week.push(addDaysISO(d,i));
+    cols.push(week); d=addDaysISO(d,7);
+  }
+  const today=todayISO();
+  // Label a column only where a new month starts, so labels stay ~4 columns apart and
+  // don't collide at 11px per column.
+  let seen='';
+  const months=cols.map(week=>{
+    const m=week.map(iso=>iso.slice(0,7)).find(mm=>mm!==seen);
+    let lab='';
+    if(m&&m!==seen){ seen=m; lab=MONTH_NAMES[Number(m.slice(5,7))-1].slice(0,3); }
+    return '<span>'+lab+'</span>';
+  }).join('');
+  const cells=cols.map(week=>week.map(iso=>{
+    const st=dayState(iso);
+    const cls=['done','partial','missed','home'].includes(st)?' '+st:'';
+    return '<div class="hmCell'+cls+(iso===today?' today':'')+'" title="'+fmtLabel(iso)+' · '+st+'"></div>';
+  }).join('')).join('');
+  return '<p class="seclabel" style="margin-top:0;border-top:none;padding-top:0">Consistency</p>'+
+    '<div class="hmWrap"><div class="hmMonths">'+months+'</div>'+
+    '<div class="hmGrid">'+cells+'</div></div>'+
+    '<div class="hmKey">'+
+      '<span><i style="background:var(--chip-2)"></i>All 4 lifts</span>'+
+      '<span><i style="background:var(--chip-3)"></i>Partial</span>'+
+      '<span><i style="background:var(--oxide)"></i>Missed</span>'+
+      '<span><i style="background:rgba(232,228,220,.13)"></i>Home</span>'+
+    '</div>';
+}
+
 function renderHistory(){
   const el=document.getElementById('historyView');
   const keys=Object.keys(state.sessions).filter(k=>{
@@ -1205,12 +1351,16 @@ function renderHistory(){
     const anyNote=s.note&&s.note.trim()!=='';
     return anyLift||anyBW||anyNote;
   });
+  // The heatmap is worth showing even with nothing logged — it lays out the schedule
+  // ahead of you. Highlights only make sense once there's something to highlight.
+  const head=renderHeatmap();
   if(!keys.length){
-    el.innerHTML='<p class="hempty">Nothing logged yet. Your first session shows up here the moment you tick a set.</p>';
+    el.innerHTML=head+'<p class="hempty">Nothing logged yet. Your first session shows up here the moment you tick a set.</p>';
+    scrollHeatmapToNow();
     return;
   }
   keys.sort((a,b)=>b<a?-1:b>a?1:0);   // ISO strings sort chronologically; newest first
-  let h='';
+  let h=head+renderHighlights()+'<p class="seclabel">Sessions</p>';
   keys.forEach(iso=>{
     const s=state.sessions[iso], block=blockForDate(iso), gym=block?isGymDay(iso,block):false;
     h+='<div class="hcard"><p class="hdate">'+fmtLabel(iso)+' · '+(gym?'Gym':'Home')+'</p>';
@@ -1232,6 +1382,13 @@ function renderHistory(){
     h+='</div>';
   });
   el.innerHTML=h;
+  scrollHeatmapToNow();
+}
+// The grid runs oldest-first, so over a long program the current week starts off-screen.
+// Park the scroll at the right-hand end, where "now" is.
+function scrollHeatmapToNow(){
+  const w=document.querySelector('#historyView .hmWrap');
+  if(w) w.scrollLeft=w.scrollWidth;
 }
 
 /* ============ body attributes ============ */

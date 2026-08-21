@@ -63,6 +63,12 @@ logic) · **History** · **Body** (attribute tracking + PR sheet) · **Cardio**
   running/cycling/rowing/swimming don't have the same progressive-
   overload shape as a barbell lift. Best pace is distance/time-normalized
   (min/km) so different distances compare fairly.
+- **History tab** opens with a **consistency heatmap** (GitHub-style
+  grid over the whole program: all-4-lifts / partial / missed / home,
+  horizontally scrollable, auto-parked at the current week) and a
+  **highlights** row (heaviest lift, biggest gain, biggest single jump,
+  longest streak, total load gained + session/set counts), above the
+  per-session cards.
 
 ## 4. Decision log
 
@@ -81,6 +87,21 @@ logic) · **History** · **Body** (attribute tracking + PR sheet) · **Cardio**
 - **Migration, not a breaking change.** Old saves under `block01v3` are
   migrated in place into the new `workout-v1` shape on first load. The
   old key is left untouched as a safety net — never deleted.
+- **History shows the journey, not a data dump — and no charts.** Prompted
+  by outside feedback that the app "feels like a product, not just a
+  training log" and should keep that character. Four directions were
+  weighed (line graph per lift, consistency heatmap, highlights summary,
+  then-vs-now table); heatmap + highlights were chosen because a graph
+  and a then-vs-now table are prettier versions of what the session
+  cards already say, while a heatmap surfaces patterns nothing else can
+  ("I always skip Fridays") and highlights give something to chase.
+  Explicitly **no graphs** — numbers and text only.
+- **Resisted feature creep on the training model.** Same feedback round
+  suggested, and argued against, adding RPE / fatigue / sleep / soreness
+  / readiness / autoregulation. Agreed: the model stays *clean →
+  progress, miss → eventually deload, feel wrong → technique work*. The
+  10% deload after three misses is deliberately the whole
+  autoregulation story. Proposals to elaborate it need a strong reason.
 - **Cardio stays a simple log, no periodization, until asked for.**
   Explicit user call: "we can build a training-block structure for
   cardio later if I decide to take it more seriously." Not built now,
