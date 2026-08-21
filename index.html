@@ -169,6 +169,18 @@
     letter-spacing:.1em;text-transform:uppercase;cursor:pointer;}
   #rest.done{background:var(--oxide);border-top-color:var(--oxide);}
 
+  /* ---- update banner ---- */
+  #updateBar{position:fixed;left:0;right:0;top:0;z-index:50;display:none;
+    background:var(--gold);color:var(--ink);
+    padding:calc(10px + env(safe-area-inset-top)) 16px 10px;
+    align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;}
+  #updateBar.on{display:flex;}
+  #updateBar span{font-family:"IBM Plex Mono",monospace;font-size:11px;
+    letter-spacing:.1em;text-transform:uppercase;}
+  #updateBar button{background:var(--ink);color:var(--plaster);border:none;border-radius:2px;
+    padding:7px 13px;cursor:pointer;font-family:"IBM Plex Mono",monospace;font-size:10.5px;
+    letter-spacing:.1em;text-transform:uppercase;}
+
   /* ---- calendar ---- */
   .months{display:grid;grid-template-columns:1fr;gap:28px;}
   @media(min-width:760px){.months{grid-template-columns:1fr 1fr;}}
@@ -243,6 +255,10 @@
 </style>
 </head>
 <body>
+<div id="updateBar">
+  <span>New update available</span>
+  <button id="updateBtn" type="button">Refresh</button>
+</div>
 <div class="wrap">
 
   <p class="eyebrow">Block 01 · 19 Aug — 30 Sep 2026</p>
@@ -831,8 +847,41 @@ document.getElementById('danger').onclick=async()=>{
   BODYWEIGHT.forEach(b=>{ if(state.bwBest[b.id]===undefined) state.bwBest[b.id]=0; });
   render(TODAY.m,TODAY.d);
 
+  /* ---- update banner ---- */
   if('serviceWorker' in navigator){
-    navigator.serviceWorker.register('sw.js').catch(()=>{});
+    let waitingWorker=null;
+    const updateBar=document.getElementById('updateBar');
+    const showUpdate=w=>{ waitingWorker=w; updateBar.classList.add('on'); };
+
+    navigator.serviceWorker.register('sw.js').then(reg=>{
+      if(reg.waiting&&reg.active) showUpdate(reg.waiting);
+      reg.addEventListener('updatefound',()=>{
+        const nw=reg.installing;
+        if(!nw) return;
+        nw.addEventListener('statechange',()=>{
+          if(nw.state==='installed'&&navigator.serviceWorker.controller) showUpdate(nw);
+        });
+      });
+      document.addEventListener('visibilitychange',()=>{
+        if(document.visibilityState==='visible') reg.update().catch(()=>{});
+      });
+      setInterval(()=>reg.update().catch(()=>{}), 30*60*1000);
+    }).catch(()=>{});
+
+    // clients.claim() in sw.js also fires controllerchange on the very first
+    // install (no update involved) — only reload when *we* triggered the skip.
+    let updateTriggered=false;
+    navigator.serviceWorker.addEventListener('controllerchange',()=>{
+      if(!updateTriggered) return;
+      updateTriggered=false;
+      window.location.reload();
+    });
+
+    document.getElementById('updateBtn').onclick=()=>{
+      if(!waitingWorker) return;
+      updateTriggered=true;
+      waitingWorker.postMessage({type:'SKIP_WAITING'});
+    };
   }
 })();
 </script>
