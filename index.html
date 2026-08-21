@@ -134,6 +134,9 @@
   details.ss[open] summary::before{content:"– ";}
   details.ss ul{margin:7px 0 0;padding-left:16px;}
   details.ss li{font-size:12.5px;line-height:1.6;color:#C6C2BA;margin-bottom:2px;}
+  details.ss.extra{margin-top:18px;padding-top:14px;border-top:1px solid var(--line);}
+  details.ss.extra summary{font-family:"IBM Plex Mono",monospace;font-size:10.5px;
+    letter-spacing:.08em;text-transform:uppercase;color:var(--zinc);}
   .prbadge{display:inline-block;background:var(--gold);color:var(--ink);
     font-family:"IBM Plex Mono",monospace;font-size:9px;font-weight:600;letter-spacing:.1em;
     padding:2px 5px;margin-left:6px;vertical-align:1px;}
@@ -528,15 +531,35 @@ const KEY='workout-v1', OLD_KEY='block01v3';
 const BAR=20, PLATES=[25,20,15,10,5,2.5,1.25];
 const LIFT_IDS=['sq','bp','dl','op'];
 const LIFT_DEFS={
-  sq:{name:'Back squat',    inc:5,  rest:180, target:155,
-      supersets:['Ankle dorsiflexion rocks · 2 × 10 each side','Plank · 30–45s']},
-  bp:{name:'Bench press',   inc:2.5,rest:150, target:130,
-      supersets:['Face pulls · 2 × 15','Band pull-aparts · 2 × 15']},
-  dl:{name:'Deadlift',      inc:5,  rest:180, target:210,
-      supersets:['Hanging knee raises · 2 × 10','Farmer carry · 2 × 20m']},
-  op:{name:'Overhead press',inc:2.5,rest:150, target:80,
-      supersets:['Pull-ups · easy sets, well short of failure','Band pull-aparts · 2 × 15']}
+  sq:{name:'Back squat',    inc:5,  rest:180, target:155, supersetTags:['core','calves']},
+  bp:{name:'Bench press',   inc:2.5,rest:150, target:130, supersetTags:['back','triceps']},
+  dl:{name:'Deadlift',      inc:5,  rest:180, target:210, supersetTags:['core','forearm']},
+  op:{name:'Overhead press',inc:2.5,rest:150, target:80,  supersetTags:['shoulders','triceps']}
 };
+// Reference only — nothing here is logged or tracked, deliberately. Picked between sets as
+// a superset (via each lift's supersetTags) or offered as optional bonus work when there's
+// time to spare (via extraPicksFor). Grouped by body part to match the Body tab's language.
+const ACCESSORY_EXERCISES={
+  chest:    ['Push-ups · 3 × 15','Incline dumbbell press · 3 × 10','Cable flyes · 3 × 12'],
+  back:     ['Band pull-aparts · 3 × 15','Face pulls · 3 × 15','Superman holds · 3 × 20s'],
+  shoulders:['Lateral raises · 3 × 12','Band pull-aparts · 3 × 15','Pike push-ups · 3 × 8'],
+  biceps:   ['Hammer curls · 3 × 12','Band curls · 3 × 15'],
+  triceps:  ['Bench dips · 3 × 12','Overhead tricep extension · 3 × 12'],
+  forearm:  ['Farmer carry · 3 × 20m','Wrist curls · 3 × 15','Dead hangs · 3 × 20s'],
+  core:     ['Plank · 3 × 30–45s','Hanging knee raises · 3 × 10','Pallof press · 3 × 10 each side'],
+  thighs:   ['Bodyweight lunges · 3 × 10 each leg','Wall sit · 3 × 30s'],
+  calves:   ['Standing calf raises · 3 × 15','Single-leg calf raise · 3 × 10 each'],
+  neck:     ['Neck curls · 2 × 15','Isometric neck holds · 3 × 15s each direction']
+};
+const ACCESSORY_TAGS=Object.keys(ACCESSORY_EXERCISES);
+function accessoriesFor(tags){ return tags.flatMap(t=>ACCESSORY_EXERCISES[t]||[]); }
+// Stable per day (doesn't reshuffle on every re-render), rotates by date so it isn't the
+// same two muscle groups every single day.
+function extraPicksFor(iso){
+  const sum=[...iso].reduce((a,c)=>a+c.charCodeAt(0),0);
+  const i=sum%ACCESSORY_TAGS.length, j=(i+4)%ACCESSORY_TAGS.length;
+  return accessoriesFor([ACCESSORY_TAGS[i],ACCESSORY_TAGS[j]]);
+}
 const BODYWEIGHT=[
   {id:'pu',name:'Pull-ups',target:20},
   {id:'po',name:'Push-ups',target:50},
@@ -911,6 +934,12 @@ function bwBlock(s,iso){
   return h;
 }
 
+// Reference only, same as the superset lists — nothing here gets logged or ticked off.
+function extraTimeBlock(iso){
+  return '<details class="ss extra"><summary>Got extra time?</summary><ul>'+
+    extraPicksFor(iso).map(x=>'<li>'+x+'</li>').join('')+'</ul></details>';
+}
+
 function updateChrome(block){
   document.getElementById('eyebrow').textContent=block.label+' · '+fmtRange(block.start,block.end);
   document.title=block.label;
@@ -971,7 +1000,7 @@ function renderDay(iso,block){
       }
       extra+='<div class="plates">'+(sc.ramp?'Top set: ':'')+plateStr(e.w)+'</div>';
       extra+='<details class="ss"><summary>Superset options</summary><ul>'+
-        def.supersets.map(x=>'<li>'+x+'</li>').join('')+'</ul></details>';
+        accessoriesFor(def.supersetTags).map(x=>'<li>'+x+'</li>').join('')+'</ul></details>';
 
       h+='<div class="lift'+(e.failed?' is-locked':'')+'"><div class="lrow">'+
          '<div class="meta"><div class="nm">'+def.name+(e.pr?'<span class="prbadge">PR</span>':'')+'</div>'+
@@ -996,6 +1025,7 @@ function renderDay(iso,block){
       h+='<div class="complete"><p class="clabel">Session complete</p>'+
          '<p class="csub">4 / 4 lifts completed'+(prCount?' · '+prCount+' new PR'+(prCount>1?'s':''):'')+'</p>'+
          rows+'<p class="cnext">Next session is ready.</p></div>';
+      h+=extraTimeBlock(iso);
     }
     h+=bwBlock(s,iso);
     h+='<p class="seclabel">Session note</p>'+
@@ -1009,6 +1039,7 @@ function renderDay(iso,block){
     h+=bwBlock(s,iso);
     h+='<div class="lift"><div class="lrow"><div class="meta"><div class="nm">Mobility</div>'+
        '<div class="pr">Hips · shoulders · ankles — 5 min</div></div></div></div>';
+    h+=extraTimeBlock(iso);
     h+='<p class="seclabel">Session note</p>'+
        '<textarea class="note" placeholder="Anything worth remembering.">'+escapeHtml(s.note||'')+'</textarea>';
     h+='<p class="hint">No sets to failure, no soreness. Blood flow and skill practice, not a workout.</p>';
