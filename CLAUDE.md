@@ -38,9 +38,9 @@ logic) · **History** · **Body** (attribute tracking + PR sheet) · **Cardio**
   built. **Block 02 onward** are auto-generated: each of the four lifts
   independently runs one of three progression modes —
   **linear** (every clean session adds weight) → **weekly** (weight held
-  a full week, advances only if the whole week was clean) →
-  **block** (periodized volume/intensity/deload wave, first-cut, unproven
-  — see open items).
+  a full week, advances if the week qualifies — see the 2-of-3 rule in
+  the decision log) → **block** (periodized volume/intensity/deload wave,
+  first-cut, unproven — see open items).
 - When a block ends, the app proposes the next one: escalates a lift's
   mode (never downgrades) if it stalled — 2+ deloads or <5% e1RM growth
   — with a ~7% weight back-off on any mode change. User confirms/adjusts
@@ -87,6 +87,34 @@ logic) · **History** · **Body** (attribute tracking + PR sheet) · **Cardio**
 - **Migration, not a breaking change.** Old saves under `block01v3` are
   migrated in place into the new `workout-v1` shape on first load. The
   old key is left untouched as a safety net — never deleted.
+- **A week counts at 2 of 3, not 3 of 3.** `weekWasClean` originally
+  required every scheduled session that week, which made the system
+  forgiving about a single lift but unforgiving about a week — one
+  Friday lost to work froze the weight entirely. Now a week qualifies at
+  `clean >= max(1, scheduled-1)`: one miss is absorbed, two is not, and a
+  block-edge week with only one session scheduled still has to hit it.
+  **This overturns the earlier "advances only if the whole week was
+  clean" rule** — called out rather than quietly changed, since it moves
+  real progression math.
+- **`phaseScheme` is block-relative, not calendar-locked.** It used to
+  read the literal month (`mo===8?1:(day<=14?2:3)`), so Block 01's phases
+  were pinned to August/September rather than to the block. Now computed
+  as days since `block.start` with thresholds (13 / 27, and a 7-day split
+  inside Load-in) chosen to reproduce the original phase lengths exactly —
+  verified identical across all 43 days of Block 01 — so behaviour is
+  unchanged today but the phases travel with the block if its dates ever
+  move. Everything else in the app was already block-relative; this was
+  the last absolute-calendar holdout.
+- **Neck work is pinned to press days.** `op.supersetTags` includes
+  `neck`, so it always appears in the overhead press superset list rather
+  than only turning up when the random rest-time pick happens to land on
+  it. An 80 kg overhead press target makes it structural, not optional.
+- **`navigator.storage.persist()` on startup.** Best-effort request that
+  the browser not evict this origin under storage pressure — two years of
+  training data in localStorage is exactly what Safari clears from sites
+  it decides are stale. Frequently denied (headless Chrome denies it
+  outright), so it is a hedge, not a guarantee: export/import remains the
+  real backup path, which is why the reminder exists.
 - **History shows the journey, not a data dump — and no charts.** Prompted
   by outside feedback that the app "feels like a product, not just a
   training log" and should keep that character. Four directions were

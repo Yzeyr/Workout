@@ -433,6 +433,7 @@
       <p><strong>Tap each set as you finish it.</strong> Every set clean completes the lift and bumps next session's weight. The rest timer starts fresh on every tap — no need to uncheck and recheck.</p>
       <p><strong>Missed a lift?</strong> Hit ✗ instead of ticking sets. Three misses on the same lift triggers an automatic 10% deload — that's the system working, not failure.</p>
       <p><strong>Lower body override:</strong> if it feels off, that session reverts to light technique work regardless of phase.</p>
+      <p><strong>Upper body override:</strong> same rule overhead. If the press or the shoulder feels off, that day is technique work at a weight you could do for ten — no exceptions for a phase or a target.</p>
       <p><strong>Home days:</strong> 5–10 min, sub-fatiguing. Sore the next day means you did too much.</p>
     </div>
 
@@ -565,7 +566,9 @@ const LIFT_DEFS={
   sq:{name:'Back squat',    inc:5,  rest:180, target:155, supersetTags:['core','calves']},
   bp:{name:'Bench press',   inc:2.5,rest:150, target:130, supersetTags:['back','triceps']},
   dl:{name:'Deadlift',      inc:5,  rest:180, target:210, supersetTags:['core','forearm']},
-  op:{name:'Overhead press',inc:2.5,rest:150, target:80,  supersetTags:['shoulders','triceps']}
+  // Neck is pinned to press days rather than left to the random pool — an 80 kg overhead
+  // press target makes it structural work, not a nice-to-have if the dice land on it.
+  op:{name:'Overhead press',inc:2.5,rest:150, target:80,  supersetTags:['shoulders','triceps','neck']}
 };
 // Reference only — nothing here is logged or tracked, deliberately. Picked between sets as
 // a superset (via each lift's supersetTags) or offered as optional bonus work when there's
@@ -663,13 +666,18 @@ function weekGymDates(weekMon,block){
   }
   return out;
 }
+// One missed session doesn't sink the week — 2 of 3 still earns the increment. Demanding
+// all three made the system forgiving about a single lift but unforgiving about a week,
+// so one Friday lost to work froze the weight entirely. A week with only one session
+// scheduled (block edges) still has to hit that one.
 function weekWasClean(id,weekMon,block){
   const dates=weekGymDates(weekMon,block);
   if(!dates.length) return false;
-  return dates.every(iso=>{ const s=state.sessions[iso]; return s&&liftComplete(s[id]); });
+  const clean=dates.filter(iso=>{ const s=state.sessions[iso]; return s&&liftComplete(s[id]); }).length;
+  return clean>=Math.max(1,dates.length-1);
 }
-// Counts fully-clean prior weeks since the block began — a missed week just doesn't
-// count, future clean weeks still do, so progress resumes instead of freezing forever.
+// Counts qualifying prior weeks since the block began — a week that didn't qualify just
+// doesn't count, future ones still do, so progress resumes instead of freezing forever.
 function effectiveWeekIndex(id,iso,block){
   let idx=0, wk=weekStartOf(block.start);
   const thisWeek=weekStartOf(iso);
@@ -681,11 +689,18 @@ function effectiveWeekIndex(id,iso,block){
 }
 
 /* ============ per-lift scheme + weight ============ */
-function phaseScheme(iso){
-  const d=parseISO(iso), mo=d.getMonth()+1, day=d.getDate();
-  const p=mo===8?1:(day<=14?2:3);
+// Block-relative, like everything else in the app. The thresholds (13 / 27 days, with a
+// 7-day split inside phase 2) are the exact lengths Block 01's original calendar-month
+// version produced — Reset for the rest of August, Load-in over the first half of
+// September, Pyramid after — so behaviour is unchanged for its real dates, but the phases
+// now travel with the block instead of snapping to August/September if the dates move.
+const PHASE2_START=13, PHASE3_START=27, LOADIN_SPLIT=7;
+function phaseScheme(iso,block){
+  const dse=Math.floor((parseISO(iso)-parseISO(block.start))/86400000);
+  const p=dse<PHASE2_START?1:(dse<PHASE3_START?2:3);
   if(p===1) return {p:1,name:'Reset',txt:'3 × 5',reps:5,sets:3,ramp:null};
-  if(p===2) return day<=7 ? {p:2,name:'Load-in',txt:'3 × 5',reps:5,sets:3,ramp:null}
+  if(p===2) return (dse-PHASE2_START)<LOADIN_SPLIT
+                          ? {p:2,name:'Load-in',txt:'3 × 5',reps:5,sets:3,ramp:null}
                           : {p:2,name:'Load-in',txt:'4 × 4',reps:4,sets:4,ramp:null};
   return {p:3,name:'Pyramid',txt:'ramp → top set of 2',reps:2,sets:5,
           ramp:[[.55,10],[.70,8],[.80,5],[.90,3],[1,2]]};
@@ -705,7 +720,7 @@ function periodizedPlan(cfg,weekIdx){
 // Weekly/block-mode weight is derived fresh from the block config + session history each
 // time — never mutated in place — so it can't drift out of sync with what was logged.
 function liftPlan(id,iso,block){
-  if(block.phaseSchedule) return {scheme:phaseScheme(iso), weight:state.weights[id]};
+  if(block.phaseSchedule) return {scheme:phaseScheme(iso,block), weight:state.weights[id]};
   const cfg=block.lifts[id];
   if(cfg.mode==='linear') return {scheme:{name:'Linear',txt:'3 × 5',reps:5,sets:3,ramp:null}, weight:state.weights[id]};
 
@@ -1241,7 +1256,7 @@ function buildMonth(y,mo,block){
     let cls='cell', lab='', el;
     if(!active) cls+=' rest-d';
     else if(isGymDay(iso,block)){
-      cls+=' gym p'+(block.phaseSchedule?phaseScheme(iso).p:2); lab='Gym';
+      cls+=' gym p'+(block.phaseSchedule?phaseScheme(iso,block).p:2); lab='Gym';
       const s=state.sessions[iso];
       if(s&&LIFT_IDS.every(id=>s[id]&&(liftComplete(s[id])||s[id].failed))) cls+=' doneMark';
     }
@@ -1682,6 +1697,14 @@ document.getElementById('danger').onclick=async()=>{
   rngBox.checked=state.randomTips;
   rngBox.onchange=async()=>{ state.randomTips=rngBox.checked; await save(); };
   updateBackupNote();
+
+  // Asks the browser not to evict this origin's storage under pressure. Two years of
+  // training data living in localStorage is exactly what Safari clears from sites it
+  // decides are stale. Best-effort — unsupported or denied is fine, the export/import
+  // backup path is still the real safety net.
+  if(navigator.storage&&navigator.storage.persist){
+    try{ await navigator.storage.persist(); }catch(e){}
+  }
 
   /* ---- update banner ---- */
   if('serviceWorker' in navigator){
