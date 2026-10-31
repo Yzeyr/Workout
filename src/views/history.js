@@ -7,6 +7,7 @@ import { outcome, e1rm, RIR, iso, liftStatus } from '../program.js';
 import { num, dayLabel, minutes, MONTHS_LONG, pace, spark } from '../util.js';
 import { cardioSheet } from './body.js';
 import { sessionName } from '../home.js';
+import { badgesBlock } from './today.js';
 
 export function historyView(root) {
   const s = get(), today = iso();
@@ -31,6 +32,7 @@ export function historyView(root) {
   clear(root,
     h('div.top', h('div.titles', h('div.eyebrow', s.sessions.length + (s.sessions.length === 1 ? ' workout' : ' workouts') + ' since ' + dayLabel(s.prog.started)), h('h1', 'History')), h('a.iconbtn', { href: '#settings', 'aria-label': 'Settings' }, icon('settings'))),
     heatBlock(s, today),
+    badgesBlock(),
     strengthBlock(s, today),
     h('section.block', h('header', h('h3', 'Workouts and cardio')),
       months.length ? months : h('p.empty', 'Nothing logged yet. Your first workout shows up here.')),

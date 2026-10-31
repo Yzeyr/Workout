@@ -17,6 +17,7 @@ import { summarizeHealth } from './health.js';
 import { health } from './views/body.js';
 import { analyze, bestExercise } from './muscles.js';
 import { MUSCLE } from './data/muscles.js';
+import { readiness, insights } from './insights.js';
 
 const SDK_URL = 'https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk@0.133.0/+esm';
 const MODEL = 'claude-opus-5-5';
@@ -68,6 +69,7 @@ function tools() {
     { name: 'get_training_log', description: 'Finished workouts within the last N days, oldest first: every exercise with sets (weight × reps done / target), the rating of the last set, notes, and what the program changed afterwards.', input_schema: { type: 'object', properties: { days: { type: 'integer', minimum: 1, maximum: 730, description: 'How many days back. Default 42.' } }, additionalProperties: false } },
     { name: 'get_health', description: 'Apple Health data: averages over the last N days compared with the N days before (steps, sleep, deep/REM sleep, resting pulse, HRV, VO2 max, weight, body fat, active energy, exercise minutes, walking pulse, breathing rate, blood oxygen), trends, workouts recorded by the watch, and the last 14 days as rows. Optionally daily values for chosen metrics.', input_schema: { type: 'object', properties: { days: { type: 'integer', minimum: 7, maximum: 365, description: 'Averaging window. Default 30.' }, daily: { type: 'array', items: { type: 'string', enum: ['steps', 'sleepH', 'deepH', 'remH', 'restingHr', 'hrvMs', 'vo2max', 'weightKg', 'bodyFatPct', 'activeKcal', 'exerciseMin', 'walkingHr', 'respiratoryRate', 'spo2', 'distanceKm'] }, description: 'Metrics to return day by day for the window (max 120 days).' } }, additionalProperties: false } },
     { name: 'get_muscle_balance', description: 'Weekly hard sets per muscle group (projected from the last 6 workouts × training frequency, and the last 7 days), target ranges, status, workouts in a row without that muscle, recovery % right now, 8-week trend, pull:push and hamstring:quad ratios, the app’s own warnings, and the best accessory to fix each gap.', input_schema: { type: 'object', properties: {}, additionalProperties: false } },
+    { name: 'get_insights', description: 'Today’s readiness score (0–100) with its reasons and the owner’s check-in, plus the app’s rule-based health insights (sleep, resting pulse, HRV, steps, cardio minutes, VO2 max band, weight trend, protein target, consistency) with levels alert/warn/info/good.', input_schema: { type: 'object', properties: {}, additionalProperties: false } },
     { name: 'get_body_and_cardio', description: 'Body measurements logged in the app (bodyweight, waist, chest, arm, thigh, neck, hips, body fat, resting pulse) with dates, and cardio sessions (type, km, minutes, pace) within the last N days.', input_schema: { type: 'object', properties: { days: { type: 'integer', minimum: 1, maximum: 730, description: 'Default 90.' } }, additionalProperties: false } },
     {
       name: 'propose_change',
@@ -235,6 +237,7 @@ export function runTool(name, input) {
     case 'get_training_log': return trainingLog(clampInt(i.days, 1, 730, 42));
     case 'get_health': return healthData(clampInt(i.days, 7, 365, 30), Array.isArray(i.daily) ? i.daily.filter((x) => typeof x === 'string').slice(0, 8) : null);
     case 'get_muscle_balance': return muscleBalance();
+    case 'get_insights': { const s = get(); return { readiness: readiness(s, health()), checkInToday: s.checkins?.[iso()] || null, insights: insights(s, health()) }; }
     case 'get_body_and_cardio': return bodyAndCardio(clampInt(i.days, 1, 730, 90));
     case 'propose_change': {
       const err = checkProposal(i);
@@ -251,6 +254,7 @@ export const TOOL_LABEL = {
   get_health: 'Read your health data',
   get_body_and_cardio: 'Read body measurements and cardio',
   get_muscle_balance: 'Checked muscle balance',
+  get_insights: 'Checked readiness and health insights',
 };
 
 /* ---------- Asking ---------- */

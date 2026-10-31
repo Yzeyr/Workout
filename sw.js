@@ -14,7 +14,7 @@
  *
  * VERSION and FILES are written by tools/version.mjs (run before every release).
  */
-const VERSION = 'workout-72b40344';
+const VERSION = 'workout-3a935e35';
 const FILES = [
   './',
   './app.css',
@@ -24,12 +24,14 @@ const FILES = [
   './icons/icon-maskable-512.png',
   './index.html',
   './manifest.webmanifest',
+  './src/badges.js',
   './src/coach.js',
   './src/data/exercises.js',
   './src/data/muscles.js',
   './src/dom.js',
   './src/health.js',
   './src/home.js',
+  './src/insights.js',
   './src/main.js',
   './src/muscles.js',
   './src/nav.js',
@@ -43,6 +45,7 @@ const FILES = [
   './src/views/history.js',
   './src/views/muscles.js',
   './src/views/settings.js',
+  './src/views/today.js',
   './src/views/train.js',
 ];
 const WAIT_MS = 2000;

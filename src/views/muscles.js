@@ -53,7 +53,7 @@ function fillFor(m) {
   if (m.status === 'none') return 'color-mix(in srgb, var(--oxide-text) 30%, var(--panel2))';
   if (m.status === 'low') return 'color-mix(in srgb, var(--oxide-text) ' + Math.round(40 + 40 * (1 - share)) + '%, var(--panel2))';
   if (m.status === 'high') return 'var(--gold)';
-  return 'color-mix(in srgb, var(--accent-text) ' + Math.round(55 + 45 * Math.min(1, (m.projected - m.target[0]) / Math.max(1, m.target[1] - m.target[0]))) + '%, var(--panel2))';
+  return 'color-mix(in srgb, var(--sq) ' + Math.round(55 + 45 * Math.min(1, (m.projected - m.target[0]) / Math.max(1, m.target[1] - m.target[0]))) + '%, var(--panel2))';
 }
 
 function bodyMap(a, onPick) {
@@ -187,7 +187,7 @@ function muscleSheet(id) {
   const ex = bestExercise(a, id, { custom: s.custom });
   const max = Math.max(1, ...m.trend, m.target[1]);
   const bars = h('div.weeks', m.trend.map((v, i) => h('div', { title: num(v) + ' sets' },
-    h('i', { style: { height: Math.round((v / max) * 100) + '%', background: v < m.target[0] ? 'var(--oxide-text)' : 'var(--accent-text)' } }),
+    h('i', { style: { height: Math.round((v / max) * 100) + '%', background: v < m.target[0] ? 'var(--op)' : 'var(--sq)' } }),
     h('small', i === m.trend.length - 1 ? 'now' : '−' + (m.trend.length - 1 - i)))));
   sheet((close) => h('div',
     h('h2', m.name),

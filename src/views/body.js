@@ -7,6 +7,7 @@ import { iso } from '../program.js';
 import { num, dayLabel, parseNum, pace, spark, ago } from '../util.js';
 import { KEYS, readJson, writeJson, remove } from '../store.js';
 import { readHealthExport, summarizeHealth } from '../health.js';
+import { insightsBlock } from './today.js';
 
 export const HEALTH_METRICS = [
   { id: 'steps', name: 'Steps', unit: '', dec: 0, better: 'up' },
@@ -49,6 +50,7 @@ export function bodyView(root) {
 
   clear(root,
     h('div.top', h('div.titles', h('div.eyebrow', 'Measurements and health'), h('h1', 'Body')), h('a.iconbtn', { href: '#settings', 'aria-label': 'Settings' }, icon('settings'))),
+    insightsBlock(),
     block('Measurements', 'tap to log', ...MEASURES.filter((m) => m.often).map(measureRow),
       fold('more-measures', { title: 'More measurements', sub: MEASURES.filter((m) => !m.often).map((m) => m.name).join(', ') }, MEASURES.filter((m) => !m.often).map(measureRow))),
     healthBlock(hd, today),

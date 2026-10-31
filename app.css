@@ -1,58 +1,63 @@
-/* Workout — one stylesheet. Dark by default, light follows the phone.
-   Fonts are the phone's own, so the app looks right with no network. */
+/* Workout — one stylesheet. Colourful and playful: every lift and muscle has
+   its own bright colour, cards are filled and round, numbers are big.
+   Dark by default, light follows the phone. Fonts are the phone's own
+   (rounded on iPhone), so the app looks right with no network. */
 
 :root {
   color-scheme: dark;
-  --bg: #12171C;
-  --panel: #1A2128;
-  --panel2: #232C35;
-  --text: #ECE8E0;
-  --muted: #A1A9B0;
-  --line: rgba(236, 232, 224, .13);
-  --line2: rgba(236, 232, 224, .24);
-  --accent: #2F6B5E;          /* fills with light text */
-  --accent-text: #8CC7B4;     /* text and lines on the background */
-  --accent-soft: rgba(140, 199, 180, .12);
-  --oxide: #B5432B;
-  --oxide-text: #EE8466;
-  --gold: #D4AE3A;
-  --gold-text: #E3C25F;
-  --on-gold: #1A1F24;
-  --shadow: 0 1px 0 rgba(255, 255, 255, .04) inset;
-  /* One colour per main lift, used everywhere that lift appears */
-  --sq: #8CC7B4; --bp: #86AEE0; --dl: #E3C25F; --op: #EE8466; --pu: #C29BE3; --acc: #A1A9B0;
-  --display: "Avenir Next Condensed", "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --bg: #0F1222;
+  --panel: #191E34;
+  --panel2: #242A45;
+  --text: #F4F2FF;
+  --muted: #A6ABC8;
+  --line: rgba(255, 255, 255, .09);
+  --line2: rgba(255, 255, 255, .18);
+  --accent: #6D5DF6;          /* fills with white text */
+  --accent-text: #B3A8FF;     /* text and lines on the background */
+  --accent-soft: rgba(141, 125, 255, .16);
+  --oxide: #E5484D;
+  --oxide-text: #FF8589;
+  --gold: #FFC53D;
+  --gold-text: #FFD466;
+  --on-gold: #2A1E00;
+  --on-colour: #0F1222;       /* dark text on the bright lift colours */
+  --shadow: 0 6px 20px rgba(0, 0, 0, .25);
+  /* One bright colour per lift, used everywhere that lift appears */
+  --sq: #33D17A; --bp: #4C9AFF; --dl: #FF9F2E; --op: #FF5C93; --pu: #A97BFF; --acc: #2BD3E4;
+  --display: ui-rounded, "SF Pro Rounded", "Nunito", -apple-system, "Segoe UI", system-ui, sans-serif;
   --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, Roboto, sans-serif;
   --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --top: env(safe-area-inset-top, 0px);
   --bottom: env(safe-area-inset-bottom, 0px);
-  --tabbar: calc(58px + var(--bottom));
-  --r: 10px;
+  --tabbar: calc(62px + var(--bottom));
+  --r: 20px;
 }
 
 @media (prefers-color-scheme: light) {
   :root:not([data-theme="dark"]) {
     color-scheme: light;
-    --bg: #F3F0E9; --panel: #FFFFFF; --panel2: #ECE8DF;
-    --text: #1A1F24; --muted: #59626A;
-    --line: rgba(26, 31, 36, .12); --line2: rgba(26, 31, 36, .24);
-    --accent: #2F6B5E; --accent-text: #2A6152; --accent-soft: rgba(47, 107, 94, .1);
-    --oxide: #B5432B; --oxide-text: #A23A22;
-    --gold: #D4AE3A; --gold-text: #7E600C;
-    --shadow: 0 1px 2px rgba(26, 31, 36, .06);
-    --sq: #2A6152; --bp: #2F5E9E; --dl: #8A6A10; --op: #A23A22; --pu: #7448A0; --acc: #59626A;
+    --bg: #F5F3FF; --panel: #FFFFFF; --panel2: #EEEBFB;
+    --text: #1B1C33; --muted: #5B5F80;
+    --line: rgba(27, 28, 51, .09); --line2: rgba(27, 28, 51, .2);
+    --accent: #5B49E8; --accent-text: #4936D6; --accent-soft: rgba(91, 73, 232, .1);
+    --oxide: #D9363E; --oxide-text: #C2262E;
+    --gold: #FFC53D; --gold-text: #8A6100;
+    --on-colour: #FFFFFF;
+    --shadow: 0 6px 18px rgba(48, 38, 120, .08);
+    --sq: #109E57; --bp: #1F6FE5; --dl: #D46F00; --op: #DB2A6B; --pu: #7B45E8; --acc: #0B93A3;
   }
 }
 :root[data-theme="light"] {
   color-scheme: light;
-  --bg: #F3F0E9; --panel: #FFFFFF; --panel2: #ECE8DF;
-  --text: #1A1F24; --muted: #59626A;
-  --line: rgba(26, 31, 36, .12); --line2: rgba(26, 31, 36, .24);
-  --accent: #2F6B5E; --accent-text: #2A6152; --accent-soft: rgba(47, 107, 94, .1);
-  --oxide: #B5432B; --oxide-text: #A23A22;
-  --gold: #D4AE3A; --gold-text: #7E600C;
-  --shadow: 0 1px 2px rgba(26, 31, 36, .06);
-  --sq: #2A6152; --bp: #2F5E9E; --dl: #8A6A10; --op: #A23A22; --pu: #7448A0; --acc: #59626A;
+  --bg: #F5F3FF; --panel: #FFFFFF; --panel2: #EEEBFB;
+  --text: #1B1C33; --muted: #5B5F80;
+  --line: rgba(27, 28, 51, .09); --line2: rgba(27, 28, 51, .2);
+  --accent: #5B49E8; --accent-text: #4936D6; --accent-soft: rgba(91, 73, 232, .1);
+  --oxide: #D9363E; --oxide-text: #C2262E;
+  --gold: #FFC53D; --gold-text: #8A6100;
+  --on-colour: #FFFFFF;
+  --shadow: 0 6px 18px rgba(48, 38, 120, .08);
+  --sq: #109E57; --bp: #1F6FE5; --dl: #D46F00; --op: #DB2A6B; --pu: #7B45E8; --acc: #0B93A3;
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -385,3 +390,148 @@ dialog.sheet::backdrop { background: rgba(0, 0, 0, .5); }
 .seg.place { margin: -4px 0 14px; padding: 4px; background: var(--panel); border: 1px solid var(--line); border-radius: 13px; gap: 4px; }
 .seg.place button { min-height: 44px; border: none; background: transparent; font-size: 16px; font-weight: 700; }
 .seg.place button[aria-pressed="true"] { background: var(--accent); color: #F4F1EA; }
+
+/* =================================================================
+   Playful theme: rounder, filled with colour, bigger numbers.
+   These rules refine the base rules above.
+   ================================================================= */
+h1 { font: 800 34px/1.05 var(--display); text-transform: none; letter-spacing: -.02em; }
+.eyebrow { font-size: 13px; letter-spacing: .02em; text-transform: none; color: var(--muted); }
+.iconbtn { border-radius: 14px; border: none; background: var(--panel); box-shadow: var(--shadow); }
+
+/* Tab bar: the active tab sits in a coloured pill */
+.tabbar { background: color-mix(in srgb, var(--panel) 92%, transparent); border-top: none; box-shadow: 0 -6px 20px rgba(0, 0, 0, .18); }
+.tabbar a { gap: 3px; height: 62px; }
+.tabbar a .ic { width: 46px; height: 28px; padding: 3px 11px; border-radius: 99px; transition: background .15s; }
+.tabbar a[aria-current="page"] { color: var(--accent-text); }
+.tabbar a[aria-current="page"] .ic { background: var(--accent-soft); }
+
+/* Blocks: filled, round, a colour dot in the title instead of a left bar */
+.block { --c: var(--accent-text); border: none; border-left: none; border-radius: var(--r); background: var(--panel); box-shadow: var(--shadow); }
+.block > header { padding: 15px 16px 10px; }
+.block > header h3 { font: 800 20px/1.15 var(--display); text-transform: none; letter-spacing: -.01em; display: flex; align-items: center; gap: 9px; }
+.block > header h3::before { content: ""; width: 10px; height: 10px; border-radius: 4px; background: var(--c); flex: none; }
+.row.strong .main b { font: 800 19px/1.15 var(--display); text-transform: none; }
+.fold-body { background: color-mix(in srgb, var(--panel2) 50%, transparent); }
+
+/* Buttons and choices: chunky pills */
+.btn { border-radius: 99px; font-weight: 800; min-height: 52px; letter-spacing: .01em; }
+.btn:not(.secondary):not(.ghost):not(.danger):not(.gold) { background: var(--accent); color: #fff; box-shadow: 0 6px 16px color-mix(in srgb, var(--accent) 35%, transparent); }
+.btn.secondary { background: var(--panel2); border: none; }
+.btn.ghost { border: 2px solid color-mix(in srgb, var(--accent-text) 45%, transparent); }
+.seg button { border-radius: 99px; border: none; background: var(--panel2); font-weight: 700; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+.chip { border: none; font-weight: 750; padding: 4px 11px; }
+.chip.up { background: color-mix(in srgb, var(--sq) 20%, transparent); color: var(--sq); }
+.chip.down { background: color-mix(in srgb, var(--op) 18%, transparent); color: var(--op); }
+.chip.gold { background: color-mix(in srgb, var(--gold) 22%, transparent); color: var(--gold-text); }
+.field input, .field select, .field textarea, .input { border-radius: 14px; border: 2px solid transparent; }
+.optlist button { border-radius: 16px; border: none; }
+.optlist button[aria-pressed="true"] { background: var(--accent-soft); }
+
+/* Gym / home switch */
+.seg.place { background: var(--panel); border: none; border-radius: 99px; box-shadow: var(--shadow); padding: 5px; }
+.seg.place button { border-radius: 99px; background: transparent; }
+.seg.place button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+
+/* Next workout: a big colourful card */
+.hero { border: none; border-radius: 26px; padding: 18px 16px; box-shadow: var(--shadow);
+  background: linear-gradient(150deg, color-mix(in srgb, var(--accent) 34%, var(--panel)) 0%, var(--panel) 55%); }
+.hero .kicker { display: inline-block; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--accent-text); background: var(--accent-soft); padding: 4px 10px; border-radius: 99px; }
+.hero h2 { font: 800 32px/1.02 var(--display); text-transform: none; letter-spacing: -.02em; margin: 10px 0 6px; }
+.hero .plan li { grid-template-columns: 36px 1fr auto; border-top: none; padding: 6px 0; }
+.hero .plan li .dot { width: 36px; height: 36px; border-radius: 12px; background: color-mix(in srgb, var(--c) 22%, transparent); position: relative; }
+.hero .plan li .dot::after { content: ""; position: absolute; inset: 12px; border-radius: 50%; background: var(--c); }
+.hero .plan li .w { font: 800 22px/1 var(--display); color: var(--c); }
+
+/* Exercise cards: coloured header, sets fill with the lift's colour */
+.ex { border: none; border-left: none; border-radius: var(--r); overflow: hidden; box-shadow: var(--shadow); }
+.ex .head { background: color-mix(in srgb, var(--c) 16%, var(--panel)); padding: 14px 10px 12px 16px; }
+.ex .tier { color: var(--c); letter-spacing: .05em; }
+.ex .name { font: 800 23px/1.08 var(--display); text-transform: none; letter-spacing: -.01em; }
+.ex .weight { border: none; background: var(--panel); border-radius: 14px; }
+.ex .weight input { font: 800 26px/1.4 var(--display); color: var(--c); }
+.sets { padding-top: 12px; }
+.set { border-radius: 16px; border: 2px solid color-mix(in srgb, var(--c) 45%, transparent); height: 62px; }
+.set b { font: 800 21px/1 var(--display); }
+.set.on { background: var(--c); border-color: var(--c); color: var(--on-colour); animation: pop .22s ease-out; }
+.set.on small { color: var(--on-colour); opacity: .8; }
+.set.fail { border-color: var(--oxide-text); color: var(--oxide-text); background: color-mix(in srgb, var(--oxide) 12%, transparent); }
+@keyframes pop { 0% { transform: scale(.9); } 60% { transform: scale(1.06); } 100% { transform: scale(1); } }
+.howhard .seg button[aria-pressed="true"] { background: var(--c); color: var(--on-colour); }
+
+/* Rest timer */
+.timer { border-radius: 22px; background: linear-gradient(120deg, var(--accent), color-mix(in srgb, var(--accent) 60%, var(--op))); color: #fff; }
+.timer .clock { font: 800 36px/1 var(--display); }
+.timer button { border-radius: 99px; border: none; background: rgba(255, 255, 255, .2); }
+.timer.go { background: var(--gold); color: var(--on-gold); }
+
+/* Alerts, banners, toasts, sheets */
+.alert { border-radius: 18px; border-width: 2px; }
+.banner { border-radius: 18px; border: none; background: color-mix(in srgb, var(--gold) 14%, var(--panel)); }
+.banner.danger { background: color-mix(in srgb, var(--oxide) 16%, var(--panel)); }
+.toast { border-radius: 99px; padding: 12px 18px; }
+.sheet-inner { border-radius: 26px 26px 0 0; border-top: none; }
+.sheet-inner h2 { font: 800 26px/1.08 var(--display); text-transform: none; letter-spacing: -.01em; }
+.stats b { font: 800 26px/1.05 var(--display); }
+.bar { height: 8px; border-radius: 99px; }
+.bar i { border-radius: 99px; }
+.heat .grid i { border-radius: 4px; }
+.heat .grid i.s2 { background: var(--sq); }
+.heat .grid i.s1 { background: color-mix(in srgb, var(--sq) 45%, var(--panel2)); }
+.heat .grid i.c { background: var(--dl); }
+
+/* Readiness card */
+.today { background: var(--panel); border-radius: 26px; padding: 14px 14px 12px; margin-bottom: 14px; box-shadow: var(--shadow); }
+.today-top { display: flex; align-items: center; gap: 12px; }
+.today-text { flex: 1; min-width: 0; }
+.today-text .kicker { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.today-text b { display: block; font: 800 22px/1.15 var(--display); color: var(--c); }
+.today-text small { display: block; color: var(--muted); font-size: 13.5px; line-height: 1.35; margin-top: 2px; }
+.ring .track { fill: none; stroke: var(--panel2); stroke-width: 7; }
+.ring .fill { fill: none; stroke-width: 7; stroke-linecap: round; transition: stroke-dasharray .4s; }
+.ring text { fill: var(--text); font: 800 19px var(--display); }
+.streak { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 54px; min-height: 60px; border: none; border-radius: 18px;
+  background: color-mix(in srgb, var(--dl) 18%, transparent); color: var(--dl); padding: 6px 8px; }
+.streak .ic { width: 22px; height: 22px; }
+.streak b { font: 800 20px/1 var(--display); }
+.streak small { font-size: 11px; font-weight: 700; }
+.checkin { display: grid; gap: 8px; margin-top: 12px; }
+.ci { display: grid; grid-template-columns: 112px 1fr; align-items: center; gap: 8px; }
+.ci > span { font-size: 14px; font-weight: 650; color: var(--muted); }
+.seg.mini { flex-wrap: nowrap; gap: 5px; }
+.seg.mini button { min-height: 40px; padding: 0 6px; font-size: 14px; flex: 1; }
+.seg.mini button[aria-pressed="true"] { background: var(--c); color: var(--on-colour); }
+.today-advice { font-size: 14.5px; margin: 12px 2px 2px; }
+.today .btn { margin-top: 10px; min-height: 46px; }
+
+/* Insights */
+.insights { display: grid; gap: 8px; padding: 0 12px 6px; }
+.insight { --k: var(--acc); display: grid; grid-template-columns: 40px 1fr auto; align-items: center; gap: 10px; text-align: left;
+  border: none; border-radius: 16px; padding: 10px 12px; background: color-mix(in srgb, var(--k) 12%, var(--panel)); color: var(--text); }
+.insight.alert { --k: var(--oxide-text); } .insight.warn { --k: var(--dl); } .insight.info { --k: var(--bp); } .insight.good { --k: var(--sq); }
+.ins-icon { width: 40px; height: 40px; border-radius: 13px; display: grid; place-items: center; background: color-mix(in srgb, var(--k) 25%, transparent); color: var(--k); }
+.ins-text b { display: block; font-weight: 700; line-height: 1.3; }
+.ins-text small { color: var(--k); font-weight: 700; font-size: 12.5px; }
+.ins-value { font: 800 16px var(--display); color: var(--k); white-space: nowrap; }
+
+/* Badges */
+.badges { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 10px; padding: 0 14px 8px; }
+.badge { display: flex; flex-direction: column; align-items: center; gap: 6px; border: none; background: none; color: var(--text); padding: 4px 0; }
+.badge small { font-size: 12.5px; font-weight: 650; text-align: center; line-height: 1.25; color: var(--muted); }
+.badge.got small { color: var(--text); }
+.medal { position: relative; width: 58px; height: 58px; border-radius: 20px; display: grid; place-items: center; overflow: hidden; background: var(--panel2); color: var(--muted); }
+.medal .ic { position: relative; z-index: 1; width: 26px; height: 26px; }
+.medal i { position: absolute; left: 0; right: 0; bottom: 0; background: color-mix(in srgb, var(--c) 30%, transparent); }
+.badge.got .medal { background: var(--c); color: var(--on-colour); box-shadow: 0 6px 16px color-mix(in srgb, var(--c) 40%, transparent); transform: rotate(-4deg); }
+.won { display: grid; gap: 10px; margin: 0 0 14px; }
+.badge.big { flex-direction: row; align-items: center; gap: 12px; padding: 12px; border-radius: 18px; background: color-mix(in srgb, var(--c) 14%, var(--panel2)); text-align: left; }
+.badge.big .medal { width: 52px; height: 52px; flex: none; animation: pop .4s ease-out; }
+.badge.big b { display: block; font: 800 17px var(--display); }
+.badge.big small { text-align: left; color: var(--muted); }
+
+/* Muscle screen in the new colours */
+.alert-actions .btn { min-height: 46px; }
+.vol { height: 12px; border-radius: 99px; }
+.vol i { border-radius: 99px; }
+.today .textbtn { text-align: left; font-size: 14px; }

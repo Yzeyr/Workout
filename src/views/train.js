@@ -16,6 +16,8 @@ import { cardioSheet } from './body.js';
 import { go } from '../nav.js';
 import { analyze, balanceExtras } from '../muscles.js';
 import { alertsBlock } from './muscles.js';
+import { readinessCard } from './today.js';
+import { badges, newBadges } from '../badges.js';
 import { worksFor, MUSCLE } from '../data/muscles.js';
 
 const TIER = { t1: 'Main lift', t2: 'Second lift', pu: 'Pull-ups', t3: 'Accessory', gtg: 'Practice' };
@@ -75,6 +77,7 @@ function nextView(root) {
   clear(root,
     header('Train', last ? 'Last trained ' + ago(last.date, today) : 'First workout'),
     placeSeg('gym'),
+    readinessCard({ gym: true }),
     reason && h('div.banner', icon('info'), h('div.text', h('b', 'A lighter couple of sessions?'), reason + ' Two sessions at 90 % with half the sets lets fatigue drop. You keep your strength.'),
       h('div', { style: { display: 'flex', flexDirection: 'column' } },
         h('button', { type: 'button', onclick: () => change((x) => { x.prog = startDeload(x.prog); }) }, 'Yes'),
@@ -137,6 +140,7 @@ function homeView(root, last, today) {
   clear(root,
     header('Train', last ? 'Last trained ' + ago(last.date, today) : 'First workout'),
     placeSeg('home'),
+    readinessCard({ gym: false }),
     h('div.banner', icon('info'), h('div.text', h('b', 'The barbell lifts wait for the gym'), 'Your next gym day is still workout ' + s.prog.next + ', with the same weights. Home sessions train the same muscles with what you have.')),
     card(full, 'Can\'t get to the gym', '~40 min', 'Squat, push, hinge, row, press and core' + (gear.includes('bar') ? ', plus pull-ups' : '') + ' — picked for what your muscles need now.'),
     card(short, 'Between gym days', '10–20 min', 'Fills the biggest gaps with muscles that are recovered, short of failure, so you are fresh for the gym.'),
@@ -370,6 +374,7 @@ function finishSheet() {
 function finish(noteText) {
   stopRest();
   let changes = [];
+  const before = badges(get());
   change((s) => {
     const ses = s.active;
     ses.note = noteText;
@@ -390,12 +395,13 @@ function finish(noteText) {
   });
   try { wakeLock?.release(); } catch { /* fine */ }
   scrollTo(0, 0);
-  summarySheet(changes);
+  summarySheet(changes, newBadges(before, badges(get())));
 }
 
-function summarySheet(changes) {
+function summarySheet(changes, won = []) {
   sheet((close) => h('div',
     h('h2', 'Saved'),
+    won.length > 0 && h('div.won', won.map((b) => h('div.badge.got.big', { style: { '--c': 'var(--' + b.colour + ')' } }, h('span.medal', icon(b.icon)), h('b', 'New badge: ' + b.name), h('small', b.desc)))),
     h('p.muted.lead', 'What changes next time:'),
     h('div', { style: { margin: '0 -16px' } }, changes.length ? changes.map((c) => h('div.row', { style: { gridTemplateColumns: '1fr auto' } },
       h('div.main', h('b', c.name), h('small', c.text)),

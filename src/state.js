@@ -19,7 +19,7 @@ let state = null;
 const listeners = new Set();
 
 export function blank() {
-  return { v: 1, created: iso(), profile: {}, prog: null, active: null, sessions: [], custom: [], body: {}, cardio: [], settings: {} };
+  return { v: 1, created: iso(), profile: {}, prog: null, active: null, sessions: [], custom: [], body: {}, cardio: [], settings: {}, checkins: {} };
 }
 
 /** Loads the state. Broken data is copied aside first, so it is never lost. */
@@ -37,6 +37,7 @@ function fixShape(s) {
   if (!Array.isArray(s.cardio)) s.cardio = [];
   if (!Array.isArray(s.custom)) s.custom = [];
   if (!s.body || typeof s.body !== 'object') s.body = {};
+  if (!s.checkins || typeof s.checkins !== 'object') s.checkins = {};
   return s;
 }
 
