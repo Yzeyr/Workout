@@ -9,6 +9,8 @@ import { KEYS, read, write, readJson, writeJson, uiGet, uiSet } from '../store.j
 import { hasKey, forgetKey } from '../coach.js';
 import { keySheet } from './coach.js';
 import { applyTheme } from '../main.js';
+import { gearSheet } from './train.js';
+import { gearOf, gearText } from '../home.js';
 
 export function settingsView(root) {
   const s = get();
@@ -30,6 +32,7 @@ export function settingsView(root) {
         const v = await choose({ title: 'Smallest jump', options: [{ value: 2.5, text: '2.5 kg', sub: '1.25 kg plates' }, { value: 1.25, text: '1.25 kg', sub: '0.625 kg plates' }, { value: 1, text: '1 kg', sub: '0.5 kg plates' }], selected: prog.jump });
         if (v) change((x) => { x.prog.jump = v; });
       } }),
+      row({ title: 'Equipment at home', sub: gearText(gearOf(s)), onclick: gearSheet }),
       row({ title: 'Own exercises', sub: s.custom.length ? s.custom.map((c) => c.name).join(', ') : 'Add exercises the catalog lacks', onclick: customSheet })),
     block('App', '',
       row({ title: 'Rest timer sound', value: uiGet('sound', '1') === '1' ? 'On' : 'Off', onclick: () => { uiSet('sound', uiGet('sound', '1') === '1' ? '0' : '1'); settingsView(root); } }),

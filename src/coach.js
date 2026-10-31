@@ -45,6 +45,7 @@ How the app's program works (the "brain" — don't contradict it without saying 
 - Second lifts (T2) run 3×8–10 double progression. Accessories (T3) go up by reps, then weight.
 - After a break, the load drops by days since that lift was done (≤13 days: same; 14–20: −10 %; 21–34: −15 %; 35–60: −25 %; more: −40 %), then climbs back in double steps.
 - Deloads are only offered when something calls for it (hard/failed lifts, resets, feeling beat up): 2 sessions at 90 % with half the sets.
+- Home: the owner can pick Gym or Home on the Train tab. A full home workout (when the gym is out) uses the home equipment for squat/push/hinge/row/press/core + pull-ups; a short home session (10–20 min) fills muscle gaps between gym days. Home sessions never move the A/B rotation or the barbell weights — the heavy lifts wait for the gym.
 - Pull-ups: a total-rep target in sets just short of max, a max test every third pull-up day, weighted work from 8+ reps.
 - Muscle balance: every exercise is mapped to muscles (1 set for the main muscle, 0.5 for helpers). The app compares weekly sets per muscle with a target range, warns when a muscle is left out several workouts in a row or the program gives too little, checks pull:push and hamstring:quad balance, and models recovery per muscle. Use get_muscle_balance for this; fix gaps with propose_change kind "extra" (one-off, next workout) or "accessory_add" (permanent).
 
@@ -118,6 +119,8 @@ function overview() {
       totalWorkouts: s.sessions.length, lastWorkout: s.sessions[s.sessions.length - 1]?.date || null,
       perWeekLast4Weeks: freq(28), perWeekLast12Weeks: freq(84),
       cardioLast4Weeks: s.cardio.filter((c) => c.date > daysAgo(28)).length,
+      homeSessionsLast4Weeks: s.sessions.filter((x) => x.place === 'home' && x.date > daysAgo(28)).length,
+      homeEquipment: (s.settings?.homeGear || ['bar', 'db']).join(', ') || 'bodyweight only',
     },
     body: { bodyweight: latest('weight'), waist: latest('waist'), restingPulse: latest('rhr') },
     appleHealth: hd ? { importedAt: hd.importedAt?.slice(0, 10), from: hd.range?.from, to: hd.range?.to } : 'Not imported. Suggest Body tab → Apple Health if health advice is wanted.',
@@ -127,7 +130,7 @@ function overview() {
 function trainingLog(days) {
   const s = get(), from = daysAgo(days);
   return s.sessions.filter((x) => x.date >= from).map((x) => ({
-    date: x.date, workout: x.wid, minutes: x.end ? Math.round((new Date(x.end) - new Date(x.start)) / 60000) : null,
+    date: x.date, workout: x.place === 'home' ? (x.kind === 'short' ? 'home-short' : 'home-full') : x.wid, minutes: x.end ? Math.round((new Date(x.end) - new Date(x.start)) / 60000) : null,
     light: x.deload || undefined, feltBeatUp: x.beatUp || undefined, note: x.note || undefined,
     exercises: x.items.filter((it) => outcome(it) !== 'skip').map((it) => ({
       name: it.name, tier: it.kind,

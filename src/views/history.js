@@ -6,6 +6,7 @@ import { MAIN, MAIN_IDS, CARDIO_TYPES } from '../data/exercises.js';
 import { outcome, e1rm, RIR, iso, liftStatus } from '../program.js';
 import { num, dayLabel, minutes, MONTHS_LONG, pace, spark } from '../util.js';
 import { cardioSheet } from './body.js';
+import { sessionName } from '../home.js';
 
 export function historyView(root) {
   const s = get(), today = iso();
@@ -42,7 +43,7 @@ export function historyView(root) {
 function heatBlock(s, today) {
   const done = new Map();
   for (const ses of s.sessions) {
-    const full = ses.items.filter((it) => it.kind === 't1').every((it) => outcome(it) !== 'skip');
+    const full = ses.place === 'home' ? ses.kind !== 'short' : ses.items.filter((it) => it.kind === 't1').every((it) => outcome(it) !== 'skip');
     done.set(ses.date, Math.max(done.get(ses.date) || 0, full ? 2 : 1));
   }
   const cardio = new Set(s.cardio.map((c) => c.date));
@@ -99,9 +100,9 @@ function strengthBlock(s, today) {
 /* ---------- Rows and details ---------- */
 function sessionRow(ses) {
   const t1 = ses.items.filter((it) => it.kind === 't1' && outcome(it) !== 'skip');
-  const sub = t1.map((it) => MAIN[it.exId].short + ' ' + num(Math.max(...it.sets.map((x) => x.w))) + (outcome(it) === 'fail' ? ' ✗' : '')).join(' · ');
+  const sub = ses.place === 'home' ? ses.items.filter((it) => outcome(it) !== 'skip').map((it) => it.name).join(' · ') : t1.map((it) => MAIN[it.exId].short + ' ' + num(Math.max(...it.sets.map((x) => x.w))) + (outcome(it) === 'fail' ? ' ✗' : '')).join(' · ');
   return row({
-    title: dayLabel(ses.date) + ' · ' + (ses.wid === 'A' ? 'Workout A' : 'Workout B') + (ses.deload ? ' (light)' : ''),
+    title: dayLabel(ses.date) + ' · ' + sessionName(ses) + (ses.deload ? ' (light)' : ''),
     sub: [sub, ses.note && '“' + ses.note.slice(0, 80) + (ses.note.length > 80 ? '…' : '') + '”'],
     value: ses.end ? minutes(ses.start, ses.end) + ' min' : '',
     onclick: () => sessionSheet(ses.id),
@@ -117,7 +118,7 @@ function sessionSheet(id) {
   const ses = get().sessions.find((x) => x.id === id);
   if (!ses) return;
   sheet((close) => h('div',
-    h('h2', (ses.wid === 'A' ? 'Workout A' : 'Workout B')),
+    h('h2', sessionName(ses)),
     h('p.muted.lead', dayLabel(ses.date, { year: true }) + (ses.end ? ' · ' + minutes(ses.start, ses.end) + ' min' : '') + (ses.beatUp ? ' · felt beat up' : '')),
     ses.note && h('p', { style: { marginBottom: '12px', fontStyle: 'italic' } }, '“' + ses.note + '”'),
     h('div', { style: { margin: '0 -16px' } }, ses.items.filter((it) => outcome(it) !== 'skip').map((it) => h('div.row', { style: { gridTemplateColumns: '1fr auto' } },

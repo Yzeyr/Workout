@@ -27,6 +27,7 @@ const round1 = (v) => Math.round(v * 10) / 10;
 export function sessionSets(ses, custom = []) {
   const acc = zero();
   for (const it of ses.items || []) {
+    if (it.kind === 'gtg') continue; // easy practice sets are not hard sets
     const n = it.sets.filter((s) => (s.done === undefined ? true : s.done != null && s.done > 0)).length;
     if (n) add(acc, worksFor(it.exId, custom), n);
   }
@@ -225,10 +226,12 @@ export function bestExercise(analysis, muscleId, { custom = [], exclude = [] } =
     const w = worksFor(a.id, custom);
     if (!w[muscleId]) continue;
     let score = w[muscleId] * 3;
+    if (a.kind === 'weight') score += 0.25; // loadable exercises are easier to progress
+    score += 0.1 * Object.keys(w).length; // on a tie, the compound movement
     for (const [m, f] of Object.entries(w)) {
       if (m === muscleId) continue;
       const x = by[m];
-      if (!x) continue;
+      if (!x || x.quiet) continue; // grip and neck never count against an exercise
       score += f * deficit(m);               // helps other lagging muscles
       if (x.status === 'high') score -= f;    // already plenty
       if (x.recovered < 0.5) score -= f * 0.5; // still tired

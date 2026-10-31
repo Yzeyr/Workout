@@ -50,7 +50,32 @@ export const ACCESSORIES = [
   { id: 'side-plank', name: 'Side plank (each side)', group: 'core', kind: 'time', range: [20, 45] },
   { id: 'back-ext', name: 'Back extension', group: 'core', kind: 'reps', range: [10, 20] },
   { id: 'wrist-curl', name: 'Wrist curls', group: 'grip', kind: 'weight', step: 1, range: [15, 20], start: 8 },
+  // Home versions (dumbbells / kettlebell), kept apart so gym and home loads don't mix
+  { id: 'goblet', name: 'Goblet squat', group: 'legs', kind: 'weight', step: 2, range: [8, 15], start: 16 },
+  { id: 'db-rdl', name: 'Dumbbell Romanian deadlift', group: 'legs', kind: 'weight', step: 2, range: [8, 12], start: 16 },
+  { id: 'floor-press', name: 'Dumbbell floor press', group: 'chest', kind: 'weight', step: 2, range: [8, 12], start: 16 },
+  { id: 'db-press', name: 'Dumbbell shoulder press', group: 'shoulders', kind: 'weight', step: 2, range: [8, 12], start: 12 },
+  { id: 'kb-swing', name: 'Kettlebell / dumbbell swing', group: 'legs', kind: 'reps', range: [15, 25] },
+  { id: 'superman', name: 'Superman hold', group: 'core', kind: 'time', range: [20, 45] },
 ];
+
+/* What each exercise needs. 'none' = bodyweight, 'bar' = pull-up bar, 'db' = dumbbells or a
+   kettlebell, 'band' = a resistance band, 'gym' = machines, cables, barbell or a bench.
+   At the gym everything is there. */
+export const GEAR = {
+  'row-db': 'db', facepull: 'gym', pullapart: 'band', 'inc-db': 'gym', pushup: 'none', dips: 'gym', lateral: 'db',
+  curl: 'db', hammer: 'db', 'tri-ext': 'db', rdl: 'gym', split: 'db', lunge: 'none', calf: 'none', plank: 'none',
+  hlr: 'bar', pallof: 'band', farmer: 'db', hang: 'bar', neck: 'none', 'reverse-fly': 'db', 'db-fly': 'db',
+  'close-push': 'none', 'leg-curl': 'gym', nordic: 'none', 'hip-thrust': 'gym', copenhagen: 'none', 'side-plank': 'none',
+  'back-ext': 'gym', 'wrist-curl': 'db', goblet: 'db', 'db-rdl': 'db', 'floor-press': 'db', 'db-press': 'db',
+  'kb-swing': 'db', superman: 'none', pu: 'bar',
+};
+export const GEAR_NAMES = { bar: 'Pull-up bar', db: 'Dumbbells / kettlebell', band: 'Resistance band' };
+/** Can this exercise be done with the gear at hand? gear: list like ['bar', 'db']; custom exercises may carry .gear */
+export function canDo(exId, gear, custom = []) {
+  const need = custom.find((c) => c.id === exId)?.gear || GEAR[exId] || 'gym';
+  return need === 'none' || gear.includes(need);
+}
 
 export const GROUPS = { back: 'Back', chest: 'Chest', shoulders: 'Shoulders', arms: 'Arms', legs: 'Legs', core: 'Core', grip: 'Grip', neck: 'Neck' };
 

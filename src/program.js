@@ -182,7 +182,7 @@ function planT2(prog, id, today, deload) {
   };
 }
 
-function planPullups(prog, wid, today, deload) {
+export function planPullups(prog, wid, today, deload) {
   const P = prog.pu;
   const test = P.n % 3 === 2 && !deload;
   const sets = [];
@@ -223,7 +223,7 @@ function planPullups(prog, wid, today, deload) {
   };
 }
 
-function planT3(prog, a, deload) {
+export function planT3(prog, a, deload) {
   const S = prog.acc[a.id] || { w: a.start ?? 0, reps: a.range[0], miss: 0 };
   const n = deload ? 2 : (a.sets || 3);
   return {
@@ -241,7 +241,7 @@ function planT3(prog, a, deload) {
 export function startSession(plan, now = new Date()) {
   return {
     id: 's' + now.getTime().toString(36),
-    wid: plan.wid, date: iso(now), start: now.toISOString(), end: null,
+    wid: plan.wid, place: plan.place || 'gym', kind: plan.kind || 'full', date: iso(now), start: now.toISOString(), end: null,
     deload: plan.deload, note: '', beatUp: false,
     items: plan.items.map((it) => ({ ...it, sets: it.sets.map((s) => ({ ...s, done: null })), rating: null, manual: false })),
   };
@@ -282,7 +282,8 @@ export function applySession(prog0, session, { custom = [] } = {}) {
     changes.push({ exId: '', name: 'Deload', text: prog.deload ? 'One lighter session left.' : 'Deload done. Normal weights next time.', dir: 0 });
   }
   const trained = session.items.some((it) => outcome(it) !== 'skip');
-  if (trained) {
+  // Home sessions leave the gym rotation alone: the heavy lifts wait for the next gym day
+  if (trained && session.place !== 'home') {
     prog.extra = []; // one-off extras are used up
     prog.next = session.wid === 'A' ? 'B' : 'A';
     prog.sinceBreak = (prog.sinceBreak || 0) + 1;
@@ -448,7 +449,7 @@ function applyT3(prog, it, res, a, say) {
 /** Says when a lighter couple of sessions would help, or null. */
 export function deloadReason(prog, sessions, today = iso()) {
   if (prog.deload) return null;
-  const recent = sessions.filter((s) => !s.deload).slice(-3);
+  const recent = sessions.filter((s) => !s.deload && s.place !== 'home').slice(-3);
   const tough = recent.flatMap((s) => s.items.filter((it) => it.kind === 't1' && (it.rating === 'hard' || outcome(it) === 'fail'))).length;
   if (recent.length >= 3 && tough >= 2) return 'Your main lifts have felt hard or fallen short ' + tough + ' times in the last 3 sessions.';
   const resets = MAIN_IDS.flatMap((id) => prog.lifts[id].resets || []).filter((d) => daysBetween(d, today) <= 14);

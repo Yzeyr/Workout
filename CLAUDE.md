@@ -16,6 +16,7 @@ untouched in `v1/` with its own service worker and its data under the
 - `src/state.js` the saved state (`workout:state`), `src/store.js` localStorage with visible errors
 - `src/health.js` streaming reader for the Apple Health export (`export.zip`/`export.xml`) → daily summaries
 - `src/muscles.js` + `src/data/muscles.js` **muscle balance**: every exercise mapped to muscles (1 / ½), weekly sets vs target, skipped program exercises, muscles left out N workouts in a row, push:pull and ham:quad ratios, fatigue/recovery per muscle, best-fix exercise. Screen: `#muscles` (body map)
+- `src/home.js` **home workouts**: Gym/Home switch on Train (remembered). Full home workout (squat/push/hinge/row/press/core slots + pull-ups) or short 10–20 min session (3 lacking, recovered muscles × 2 sets + easy pull-up practice). Gear in `settings.homeGear` (default pull-up bar + dumbbells); `GEAR` in exercises.js says what each exercise needs
 - `src/coach.js` Claude coach: tools that read the app's data, `propose_change` cards the owner applies
 - `src/views/*.js` the screens; `src/dom.js` UI building blocks; `src/timer.js` rest timer
 - `docs/research.md` the training research behind the rules (with sources)
@@ -42,6 +43,7 @@ Icons: `node tools/icons.mjs`. Local preview: serve the repo under `/Workout/`.
 - **Goal pace is a curve** (fast early, slow late), not a straight line. Bench 130 is the biggest stretch.
 - **Coach changes are proposals.** The model can only suggest weight/goal/accessory/deload changes; the owner taps Apply.
 - **Muscle balance (asked for "over-engineered").** Projection = average sets per workout over the last 6 × actual workouts/week (min 2), so a busy week doesn't flag everything; before 3 workouts the planned A/B stand in. Warnings on Train only for severity ≥ 2; everything on `#muscles`. Fixes are one-off extras for the next workout (`prog.extra`, used up when a workout is saved) or permanent accessories. Optional muscles (obliques, adductors) only warn when in focus; forearms and neck never. Default accessories were chosen so the default program has no serious warnings at 2–3 workouts a week (tested).
+- **Home sessions never touch the gym program** (owner's choice: the heavy lifts wait for the gym). No A/B rotation change, no barbell weight change, one-off balance extras stay for the gym. Accessories and pull-ups (on the bar) progress as usual; pull-up practice sets (kind `gtg`) neither progress nor count as hard sets. Home versions of exercises (goblet squat, DB RDL, floor press, DB press, swings) have their own ids so gym and home loads don't mix. Very sore-making exercises (Nordic curls) stay out of short sessions.
 - **Service worker:** network-first for the page with a 2 s limit, cache for the rest, installs a version completely or not at all. A new version never reloads the page during a workout.
 
 ## Not verified yet

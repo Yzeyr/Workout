@@ -72,6 +72,12 @@ export const WORKS = {
   hang: { forearms: 1, lats: 0.5 },
   'wrist-curl': { forearms: 1 },
   neck: { neck: 1 },
+  goblet: { quads: 1, glutes: 0.5, adductors: 0.5, abs: 0.5 },
+  'db-rdl': { hamstrings: 1, glutes: 1, lowerBack: 0.5, forearms: 0.5 },
+  'floor-press': { chest: 1, triceps: 0.5, frontDelts: 0.5 },
+  'db-press': { frontDelts: 1, sideDelts: 0.5, triceps: 0.5 },
+  'kb-swing': { glutes: 1, hamstrings: 0.5, lowerBack: 0.5, forearms: 0.5 },
+  superman: { lowerBack: 1, glutes: 0.5 },
 };
 
 /* Own exercises are tagged with a body-part group; this is the guess for them. */

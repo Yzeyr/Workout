@@ -9,14 +9,16 @@ import {
 import { MAIN, MAIN_IDS, ACCESSORIES, GROUPS, REST_TIPS, accessory } from '../data/exercises.js';
 import { startRest, stopRest, unlockSound } from '../timer.js';
 import { num, ago, parseNum, minutes, dayLabel } from '../util.js';
-import { later } from '../store.js';
+import { later, uiGet, uiSet } from '../store.js';
+import { planHome, gearOf, gearText, sessionName } from '../home.js';
+import { GEAR_NAMES, canDo } from '../data/exercises.js';
 import { cardioSheet } from './body.js';
 import { go } from '../nav.js';
 import { analyze, balanceExtras } from '../muscles.js';
 import { alertsBlock } from './muscles.js';
 import { worksFor, MUSCLE } from '../data/muscles.js';
 
-const TIER = { t1: 'Main lift', t2: 'Second lift', pu: 'Pull-ups', t3: 'Accessory' };
+const TIER = { t1: 'Main lift', t2: 'Second lift', pu: 'Pull-ups', t3: 'Accessory', gtg: 'Practice' };
 const RATINGS = [['easy', 'Easy'], ['ok', 'OK'], ['hard', 'Hard'], ['fail', 'Failed']];
 
 export function trainView(root) {
@@ -67,19 +69,12 @@ function nextView(root) {
   const last = s.sessions[s.sessions.length - 1];
   const reason = deloadReason(prog, s.sessions, today);
 
-  const planRows = plan.items.map((it) => {
-    const top = Math.max(...it.sets.map((x) => x.w));
-    const reps = it.sets.map((x) => x.reps);
-    const same = reps.every((r) => r === reps[0]);
-    const scheme = it.kind === 'pu' ? it.sets.length + ' sets' : same ? it.sets.length + ' × ' + reps[0] + (it.sets.some((x) => x.amrap) ? '+' : '') : it.sets.length + ' sets';
-    const weight = it.bodyweight ? (top > 0 ? '+' + num(top) : 'BW') : it.accKind && it.accKind !== 'weight' ? '' : top > 0 ? num(top) : 'BW';
-    return h('li', { style: { '--c': 'var(--' + it.colour + ')' } }, h('span.dot'),
-      h('div', h('b', it.name), h('small', (it.extra ? 'Balance' : TIER[it.kind]) + ' · ' + scheme + (it.unit === 's' ? ' s' : ''))),
-      h('span.w', weight));
-  });
+  if (uiGet('place', 'gym') === 'home') return homeView(root, last, today);
+  const planRows = planList(plan.items);
 
   clear(root,
     header('Train', last ? 'Last trained ' + ago(last.date, today) : 'First workout'),
+    placeSeg('gym'),
     reason && h('div.banner', icon('info'), h('div.text', h('b', 'A lighter couple of sessions?'), reason + ' Two sessions at 90 % with half the sets lets fatigue drop. You keep your strength.'),
       h('div', { style: { display: 'flex', flexDirection: 'column' } },
         h('button', { type: 'button', onclick: () => change((x) => { x.prog = startDeload(x.prog); }) }, 'Yes'),
@@ -103,7 +98,76 @@ function nextView(root) {
   );
 }
 
-const names = (ids, custom) => ids.map((id) => accessory(id, custom)?.name).filter(Boolean).join(', ') || 'none';
+/** The exercises of a plan as a short list: name, tier and scheme, weight. */
+function planList(items) {
+  return items.map((it) => {
+    const top = Math.max(...it.sets.map((x) => x.w));
+    const reps = it.sets.map((x) => x.reps);
+    const same = reps.every((r) => r === reps[0]);
+    const scheme = it.kind === 'pu' ? it.sets.length + ' sets' : same ? it.sets.length + ' × ' + reps[0] + (it.sets.some((x) => x.amrap) ? '+' : '') : it.sets.length + ' sets';
+    const weight = it.bodyweight ? (top > 0 ? '+' + num(top) : 'BW') : it.accKind && it.accKind !== 'weight' ? '' : top > 0 ? num(top) : 'BW';
+    const label = it.slot && it.kind !== 'pu' ? it.slot : it.extra ? 'Balance' : TIER[it.kind];
+    return h('li', { style: { '--c': 'var(--' + it.colour + ')' } }, h('span.dot'),
+      h('div', h('b', it.name), h('small', label + ' · ' + scheme + (it.unit === 's' ? ' s' : ''))),
+      h('span.w', weight));
+  });
+}
+
+/** Gym or home, one tap. Remembered for next time. */
+function placeSeg(place) {
+  return h('div.seg.place', { role: 'group', 'aria-label': 'Where are you training?' },
+    [['gym', 'Gym'], ['home', 'Home']].map(([v, t]) => h('button', {
+      type: 'button', 'aria-pressed': String(place === v),
+      onclick: () => { if (place !== v) { uiSet('place', v); change(() => {}); } },
+    }, t)));
+}
+
+/* ---------- Home ---------- */
+function homeView(root, last, today) {
+  const s = get();
+  const gear = gearOf(s);
+  const full = planHome(s, 'full', { today });
+  const short = planHome(s, 'short', { today });
+  const card = (plan, kicker, minutesText, why) => h('div.hero',
+    h('div.kicker', kicker),
+    h('h2', plan.name),
+    h('p.why', why),
+    h('ul.plan', planList(plan.items)),
+    h('div.btnrow', h('button.btn' + (plan.kind === 'short' ? '.secondary' : ''), { type: 'button', style: { flex: '1' }, onclick: () => begin(plan) }, 'Start · ' + minutesText)));
+  clear(root,
+    header('Train', last ? 'Last trained ' + ago(last.date, today) : 'First workout'),
+    placeSeg('home'),
+    h('div.banner', icon('info'), h('div.text', h('b', 'The barbell lifts wait for the gym'), 'Your next gym day is still workout ' + s.prog.next + ', with the same weights. Home sessions train the same muscles with what you have.')),
+    card(full, 'Can\'t get to the gym', '~40 min', 'Squat, push, hinge, row, press and core' + (gear.includes('bar') ? ', plus pull-ups' : '') + ' — picked for what your muscles need now.'),
+    card(short, 'Between gym days', '10–20 min', 'Fills the biggest gaps with muscles that are recovered, short of failure, so you are fresh for the gym.'),
+    (s.settings?.balance || 'suggest') !== 'off' && alertsBlock(analyze(s, { today }), s),
+    block('Home', '',
+      row({ title: 'Equipment at home', sub: gearText(gear), onclick: gearSheet }),
+      row({ title: 'Muscles', sub: 'Body map, sets per muscle, recovery and balance', onclick: () => go('muscles') }),
+      row({ title: 'Log cardio', sub: 'Run, walk, bike, row or swim', onclick: () => cardioSheet() })),
+  );
+}
+
+export function gearSheet() {
+  const sel = new Set(gearOf(get()));
+  const list = h('div.optlist', Object.entries(GEAR_NAMES).map(([id, name]) => {
+    const b = h('button', { type: 'button', 'aria-pressed': String(sel.has(id)), onclick: () => {
+      if (sel.has(id)) sel.delete(id); else sel.add(id);
+      b.setAttribute('aria-pressed', String(sel.has(id)));
+      clear(b, h('span', name), sel.has(id) && icon('check'));
+    } }, h('span', name), sel.has(id) && icon('check'));
+    return b;
+  }));
+  sheet((close) => h('div',
+    h('h2', 'Equipment at home'),
+    h('p.muted.lead', 'Bodyweight exercises are always included. Home workouts only use what you tick here.'),
+    list,
+    h('div.btnrow',
+      h('button.btn.secondary', { type: 'button', onclick: () => close() }, 'Cancel'),
+      h('button.btn', { type: 'button', onclick: () => { change((x) => { x.settings = { ...(x.settings || {}), homeGear: [...sel] }; }); close(); toast('Saved'); } }, 'Save'))));
+}
+
+const names = (ids, custom) =>ids.map((id) => accessory(id, custom)?.name).filter(Boolean).join(', ') || 'none';
 
 function goalsBlock(prog, today) {
   const rows = MAIN_IDS.map((id) => {
@@ -145,7 +209,7 @@ function sessionView(root) {
   keepAwake();
   const doneItems = ses.items.filter((it) => outcome(it) !== 'skip').length;
   clear(root,
-    header(ses.wid === 'A' ? 'Workout A' : 'Workout B', (ses.deload ? 'Lighter session · ' : '') + minutes(ses.start) + ' min · ' + doneItems + ' of ' + ses.items.length + ' started'),
+    header(sessionName(ses), (ses.place === 'home' ? 'Home · ' : '') + (ses.deload ? 'Lighter session · ' : '') + minutes(ses.start) + ' min · ' + doneItems + ' of ' + ses.items.length + ' started'),
     ses.items.map((it, i) => exerciseCard(it, i)),
     h('button.btn.ghost.wide', { type: 'button', onclick: addExercise }, icon('plus'), 'Add an exercise'),
     h('div.btnrow', { style: { marginTop: '12px' } },
@@ -377,7 +441,9 @@ async function addExercise() {
   const s = get();
   const a = analyze(s);
   const inSession = new Set(s.active.items.map((it) => it.exId));
-  const all = [...ACCESSORIES, ...s.custom].filter((x) => !inSession.has(x.id));
+  const atHome = s.active.place === 'home';
+  const gear = gearOf(s);
+  const all = [...ACCESSORIES, ...s.custom].filter((x) => !inSession.has(x.id) && (!atHome || canDo(x.id, gear, s.custom)));
   // Exercises that train what is lacking come first
   const need = (id) => Object.entries(worksFor(id, s.custom)).reduce((sum, [m, f]) => {
     const x = a.by[m];
@@ -390,7 +456,7 @@ async function addExercise() {
   })) });
   if (!id) return;
   const prog = { ...s.prog, extra: [{ id }], t3: { A: [], B: [] } };
-  const plan = planWorkout(prog, s.active.wid, { custom: s.custom });
+  const plan = planWorkout(prog, s.active.wid === 'B' ? 'B' : 'A', { custom: s.custom });
   const item = startSession(plan).items.find((it) => it.exId === id);
   if (item) editActive((x) => { x.items.push({ ...item, note: item.note.replace(/^Added for balance\. /, '') }); });
 }
