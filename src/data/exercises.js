@@ -40,12 +40,24 @@ export const ACCESSORIES = [
   { id: 'farmer', name: 'Farmer carry (20 m)', group: 'grip', kind: 'weight', step: 2, range: [2, 3], start: 24 },
   { id: 'hang', name: 'Dead hang', group: 'grip', kind: 'time', range: [20, 60] },
   { id: 'neck', name: 'Neck curls', group: 'neck', kind: 'reps', range: [12, 20] },
+  { id: 'reverse-fly', name: 'Reverse dumbbell fly', group: 'shoulders', kind: 'weight', step: 1, range: [12, 15], start: 5 },
+  { id: 'db-fly', name: 'Dumbbell fly', group: 'chest', kind: 'weight', step: 2, range: [10, 15], start: 8 },
+  { id: 'close-push', name: 'Close-grip push-ups', group: 'arms', kind: 'reps', range: [8, 20] },
+  { id: 'leg-curl', name: 'Leg curl (machine)', group: 'legs', kind: 'weight', step: 5, range: [10, 15], start: 25 },
+  { id: 'nordic', name: 'Nordic curl (slow lowering)', group: 'legs', kind: 'reps', range: [3, 8] },
+  { id: 'hip-thrust', name: 'Hip thrust', group: 'legs', kind: 'weight', step: 5, range: [8, 12], start: 40 },
+  { id: 'copenhagen', name: 'Copenhagen plank', group: 'legs', kind: 'time', range: [15, 40] },
+  { id: 'side-plank', name: 'Side plank (each side)', group: 'core', kind: 'time', range: [20, 45] },
+  { id: 'back-ext', name: 'Back extension', group: 'core', kind: 'reps', range: [10, 20] },
+  { id: 'wrist-curl', name: 'Wrist curls', group: 'grip', kind: 'weight', step: 1, range: [15, 20], start: 8 },
 ];
 
 export const GROUPS = { back: 'Back', chest: 'Chest', shoulders: 'Shoulders', arms: 'Arms', legs: 'Legs', core: 'Core', grip: 'Grip', neck: 'Neck' };
 
-/* Default T3 work per workout: what the main lifts in that workout leave out. */
-export const DEFAULT_T3 = { A: ['row-db', 'hlr'], B: ['facepull', 'curl'] };
+/* Default T3 work per workout: what the main lifts leave out (checked with the muscle
+   balance model). A has no deadlift, so it gets the hamstring hinge; B gets side delts,
+   extra chest/triceps and calves. */
+export const DEFAULT_T3 = { A: ['rdl', 'facepull', 'hlr'], B: ['lateral', 'dips', 'calf'] };
 
 /* Short fillers for rest periods: easy, non-fatiguing, matched to the lift you rest from. */
 export const REST_TIPS = {

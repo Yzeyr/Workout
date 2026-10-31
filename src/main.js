@@ -10,6 +10,7 @@ import { historyView } from './views/history.js';
 import { bodyView } from './views/body.js';
 import { coachView } from './views/coach.js';
 import { settingsView } from './views/settings.js';
+import { musclesView } from './views/muscles.js';
 
 const TABS = [
   { id: 'train', name: 'Train', icon: 'train', view: trainView },
@@ -17,7 +18,7 @@ const TABS = [
   { id: 'body', name: 'Body', icon: 'body', view: bodyView },
   { id: 'coach', name: 'Coach', icon: 'coach', view: coachView },
 ];
-const OTHER = { settings: settingsView };
+const OTHER = { settings: settingsView, muscles: musclesView };
 
 export function applyTheme() {
   const t = uiGet('theme', 'system');

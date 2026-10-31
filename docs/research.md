@@ -296,3 +296,26 @@ Sources:
   - Deadlift starts at about 60 kg or 40%.
   - T2 lifts of a pattern already warmed up get 1 ramp set.
   - [E/C]
+
+---
+
+# Muscle volume
+
+Research for the muscle-balance feature (2026-10-31). Labels: [R] research, [E] expert consensus, [C] convention.
+
+- **Weekly sets.** Growth rises with weekly hard sets per muscle, with diminishing returns (Schoenfeld 2017, https://pubmed.ncbi.nlm.nih.gov/28834797/; Pelland 2024, https://sportrxiv.org/index.php/server/preprint/view/460) [R]. Baz-Valle 2022 suggests about 12–20 sets for trained lifters (https://pmc.ncbi.nlm.nih.gov/articles/PMC8884877/) [R, small base]. Novices respond to less. The RP volume landmarks (MV/MEV/MAV/MRV) are convention [E/C]: https://rpstrength.com/blogs/articles/training-volume-landmarks-muscle-growth
+- **Indirect sets count ½.** Pelland 2024 compared counting synergist sets as 0, 1 or 0.5. The fractional model fitted best [R].
+  - Bench: chest 1, triceps ½, front delts ½.
+  - Press: front delts 1, side delts ½, triceps ½.
+  - Pull-ups: lats 1, biceps ½, rear delts ¼.
+  - Squat: quads 1, glutes and adductors ½, hamstrings 0. Kubo 2019 found deep squats grow glutes and adductors but not hamstrings (https://pubmed.ncbi.nlm.nih.gov/30662500/) [R].
+  - Deadlift: ½ to glutes, hamstrings, lower back and grip [C, thin evidence].
+- **Recovery** takes about 48 h for small muscles and 48–72 h for big ones [E]. No validated decay model exists. The app uses fatigue that halves every 24 h for small muscles and 32 h for large ones [C, made up].
+- **Pull:push ≥ 1:1** is convention for shoulder health, not a tested training ratio [C]. Hamstring:quad is also convention [C].
+- **Strength vs. volume.** For strength, the returns from volume level off sooner, and frequency matters more (Pelland 2024) [R]. The muscle counts are about balance and growth. Practising the main lifts drives strength.
+- **Targets used in the app** (weekly sets, low–high):
+  - Chest 8–16, lats 8–16, upper back 8–16, quads 8–16
+  - Front delts 4–10, side delts 6–14, rear delts 4–12
+  - Biceps 6–14, triceps 6–14, glutes 6–14, hamstrings 6–12
+  - Calves 4–12, abs 4–10, lower back 2–8, obliques 2–8, adductors 3–8
+  - Forearms 0–6 and neck 0–4 never warn.

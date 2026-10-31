@@ -15,6 +15,8 @@ import { MAIN, MAIN_IDS, ACCESSORIES, accessory } from './data/exercises.js';
 import { planWorkout, outcome, liftStatus, iso, loadable, startDeload, e1rm, RIR, daysBetween } from './program.js';
 import { summarizeHealth } from './health.js';
 import { health } from './views/body.js';
+import { analyze, bestExercise } from './muscles.js';
+import { MUSCLE } from './data/muscles.js';
 
 const SDK_URL = 'https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk@0.133.0/+esm';
 const MODEL = 'claude-opus-5-5';
@@ -44,6 +46,7 @@ How the app's program works (the "brain" — don't contradict it without saying 
 - After a break, the load drops by days since that lift was done (≤13 days: same; 14–20: −10 %; 21–34: −15 %; 35–60: −25 %; more: −40 %), then climbs back in double steps.
 - Deloads are only offered when something calls for it (hard/failed lifts, resets, feeling beat up): 2 sessions at 90 % with half the sets.
 - Pull-ups: a total-rep target in sets just short of max, a max test every third pull-up day, weighted work from 8+ reps.
+- Muscle balance: every exercise is mapped to muscles (1 set for the main muscle, 0.5 for helpers). The app compares weekly sets per muscle with a target range, warns when a muscle is left out several workouts in a row or the program gives too little, checks pull:push and hamstring:quad balance, and models recovery per muscle. Use get_muscle_balance for this; fix gaps with propose_change kind "extra" (one-off, next workout) or "accessory_add" (permanent).
 
 Your job:
 - Look at the data before you answer anything about it. Use the tools; don't guess numbers. Start with get_overview unless the question is purely general.
@@ -63,14 +66,15 @@ function tools() {
     { name: 'get_overview', description: 'Profile, program state (working weights, stage, estimated maxes, goals and pace), the next planned workout, training frequency, and the latest bodyweight. Call this first.', input_schema: { type: 'object', properties: {}, additionalProperties: false } },
     { name: 'get_training_log', description: 'Finished workouts within the last N days, oldest first: every exercise with sets (weight × reps done / target), the rating of the last set, notes, and what the program changed afterwards.', input_schema: { type: 'object', properties: { days: { type: 'integer', minimum: 1, maximum: 730, description: 'How many days back. Default 42.' } }, additionalProperties: false } },
     { name: 'get_health', description: 'Apple Health data: averages over the last N days compared with the N days before (steps, sleep, deep/REM sleep, resting pulse, HRV, VO2 max, weight, body fat, active energy, exercise minutes, walking pulse, breathing rate, blood oxygen), trends, workouts recorded by the watch, and the last 14 days as rows. Optionally daily values for chosen metrics.', input_schema: { type: 'object', properties: { days: { type: 'integer', minimum: 7, maximum: 365, description: 'Averaging window. Default 30.' }, daily: { type: 'array', items: { type: 'string', enum: ['steps', 'sleepH', 'deepH', 'remH', 'restingHr', 'hrvMs', 'vo2max', 'weightKg', 'bodyFatPct', 'activeKcal', 'exerciseMin', 'walkingHr', 'respiratoryRate', 'spo2', 'distanceKm'] }, description: 'Metrics to return day by day for the window (max 120 days).' } }, additionalProperties: false } },
+    { name: 'get_muscle_balance', description: 'Weekly hard sets per muscle group (projected from the last 6 workouts × training frequency, and the last 7 days), target ranges, status, workouts in a row without that muscle, recovery % right now, 8-week trend, pull:push and hamstring:quad ratios, the app’s own warnings, and the best accessory to fix each gap.', input_schema: { type: 'object', properties: {}, additionalProperties: false } },
     { name: 'get_body_and_cardio', description: 'Body measurements logged in the app (bodyweight, waist, chest, arm, thigh, neck, hips, body fat, resting pulse) with dates, and cardio sessions (type, km, minutes, pace) within the last N days.', input_schema: { type: 'object', properties: { days: { type: 'integer', minimum: 1, maximum: 730, description: 'Default 90.' } }, additionalProperties: false } },
     {
       name: 'propose_change',
-      description: 'Suggest one change to the program. It is shown to the owner as a card with Apply / No thanks; it is not applied until they tap Apply. kind: "weight" sets the working weight (or training max in wave mode) of a main lift; "goal" sets a two-year goal (lift "pu" = pull-up reps); "accessory_add" / "accessory_remove" changes the accessories of workout A or B; "deload" starts two lighter sessions.',
+      description: 'Suggest one change to the program. It is shown to the owner as a card with Apply / No thanks; it is not applied until they tap Apply. kind: "weight" sets the working weight (or training max in wave mode) of a main lift; "goal" sets a two-year goal (lift "pu" = pull-up reps); "accessory_add" / "accessory_remove" changes the accessories of workout A or B; "extra" adds an accessory (exercise_id) to the next workout only; "deload" starts two lighter sessions.',
       input_schema: {
         type: 'object', additionalProperties: false, required: ['kind', 'reason'],
         properties: {
-          kind: { type: 'string', enum: ['weight', 'goal', 'accessory_add', 'accessory_remove', 'deload'] },
+          kind: { type: 'string', enum: ['weight', 'goal', 'accessory_add', 'accessory_remove', 'extra', 'deload'] },
           lift: { type: 'string', enum: lifts },
           value: { type: 'number', description: 'kg for weight/goal, reps for the pull-up goal' },
           workout: { type: 'string', enum: ['A', 'B'] },
@@ -147,6 +151,19 @@ function healthData(days, daily) {
   return out;
 }
 
+function muscleBalance() {
+  const s = get();
+  if (!s.prog) return { error: 'Program not set up yet' };
+  const a = analyze(s);
+  return {
+    basis: a.basis === 'plan' ? 'planned workouts (fewer than 3 logged)' : 'last 6 workouts', workoutsPerWeek: a.freq,
+    muscles: a.muscles.map((m) => ({ muscle: m.name, setsPerWeek: m.projected, last7Days: m.week, target: m.target.join('-'), status: m.status, workoutsWithout: m.streak, recoveredPct: Math.round(m.recovered * 100), trend8w: m.trend.join(','), focus: m.focus || undefined })),
+    ratios: { pullToPushRows: a.ratios.horizontal, pullToPushVertical: a.ratios.vertical, hamstringsToQuads: a.ratios.hamQuad },
+    warnings: a.alerts.map((al) => ({ severity: al.severity, title: al.title, fix: bestExercise(a, al.muscle, { custom: s.custom })?.id })),
+    plannedExtrasForNextWorkout: (s.prog.extra || []).map((x) => x.id),
+  };
+}
+
 function bodyAndCardio(days) {
   const s = get(), from = daysAgo(days);
   const body = {};
@@ -168,6 +185,7 @@ export function checkProposal(p) {
     if (!(typeof p.value === 'number' && p.value > 0 && p.value < 500)) return 'value must be a positive number';
     return null;
   }
+  if (p.kind === 'extra') return accIds().includes(p.exercise_id) ? null : 'unknown exercise_id';
   if (p.kind === 'accessory_add' || p.kind === 'accessory_remove') {
     if (!['A', 'B'].includes(p.workout)) return 'workout must be A or B';
     if (!accIds().includes(p.exercise_id)) return 'unknown exercise_id';
@@ -187,6 +205,7 @@ export function describeProposal(p) {
   if (p.kind === 'goal') return 'Two-year goal for ' + (p.lift === 'pu' ? 'pull-ups: ' + Math.round(p.value) + ' reps' : MAIN[p.lift].name.toLowerCase() + ': ' + p.value + ' kg');
   if (p.kind === 'accessory_add') return 'Add ' + (accessory(p.exercise_id, s.custom)?.name || p.exercise_id) + ' to workout ' + p.workout;
   if (p.kind === 'accessory_remove') return 'Remove ' + (accessory(p.exercise_id, s.custom)?.name || p.exercise_id) + ' from workout ' + p.workout;
+  if (p.kind === 'extra') return 'Add ' + (accessory(p.exercise_id, s.custom)?.name || p.exercise_id) + ' to the next workout';
   if (p.kind === 'deload') return 'Two lighter sessions (90 %, half the sets)';
   return 'Change';
 }
@@ -201,6 +220,7 @@ export function applyProposal(p) {
     } else if (p.kind === 'goal') prog.goals[p.lift] = p.lift === 'pu' ? Math.round(p.value) : p.value;
     else if (p.kind === 'accessory_add') { if (!prog.t3[p.workout].includes(p.exercise_id)) prog.t3[p.workout].push(p.exercise_id); }
     else if (p.kind === 'accessory_remove') prog.t3[p.workout] = prog.t3[p.workout].filter((x) => x !== p.exercise_id);
+    else if (p.kind === 'extra') prog.extra = [...(prog.extra || []).filter((x) => x.id !== p.exercise_id), { id: p.exercise_id, why: 'coach' }];
     else if (p.kind === 'deload') s.prog = startDeload(prog);
   });
 }
@@ -211,6 +231,7 @@ export function runTool(name, input) {
     case 'get_overview': return overview();
     case 'get_training_log': return trainingLog(clampInt(i.days, 1, 730, 42));
     case 'get_health': return healthData(clampInt(i.days, 7, 365, 30), Array.isArray(i.daily) ? i.daily.filter((x) => typeof x === 'string').slice(0, 8) : null);
+    case 'get_muscle_balance': return muscleBalance();
     case 'get_body_and_cardio': return bodyAndCardio(clampInt(i.days, 1, 730, 90));
     case 'propose_change': {
       const err = checkProposal(i);
@@ -226,6 +247,7 @@ export const TOOL_LABEL = {
   get_training_log: 'Read your training log',
   get_health: 'Read your health data',
   get_body_and_cardio: 'Read body measurements and cardio',
+  get_muscle_balance: 'Checked muscle balance',
 };
 
 /* ---------- Asking ---------- */

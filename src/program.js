@@ -125,6 +125,13 @@ export function planWorkout(prog, wid = prog.next, { today = iso(), custom = [] 
     const a = accessory(aid, custom);
     if (a) items.push(planT3(prog, a, deload));
   }
+  // One-off extras for muscle balance (from the balance check or the coach), for the next workout only
+  for (const x of (prog.extra || [])) {
+    const a = accessory(x.id, custom);
+    if (!a || items.some((i) => i.exId === a.id)) continue;
+    const it = planT3(prog, a, deload);
+    items.push({ ...it, key: 'x-' + a.id, extra: true, note: 'Added for balance' + (x.why ? ': ' + x.why.toLowerCase() : '') + '. ' + it.note });
+  }
   return { wid, name: w.name, items, notes, deload };
 }
 
@@ -276,6 +283,7 @@ export function applySession(prog0, session, { custom = [] } = {}) {
   }
   const trained = session.items.some((it) => outcome(it) !== 'skip');
   if (trained) {
+    prog.extra = []; // one-off extras are used up
     prog.next = session.wid === 'A' ? 'B' : 'A';
     prog.sinceBreak = (prog.sinceBreak || 0) + 1;
   }

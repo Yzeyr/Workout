@@ -12,6 +12,9 @@ import { num, ago, parseNum, minutes, dayLabel } from '../util.js';
 import { later } from '../store.js';
 import { cardioSheet } from './body.js';
 import { go } from '../nav.js';
+import { analyze, balanceExtras } from '../muscles.js';
+import { alertsBlock } from './muscles.js';
+import { worksFor, MUSCLE } from '../data/muscles.js';
 
 const TIER = { t1: 'Main lift', t2: 'Second lift', pu: 'Pull-ups', t3: 'Accessory' };
 const RATINGS = [['easy', 'Easy'], ['ok', 'OK'], ['hard', 'Hard'], ['fail', 'Failed']];
@@ -69,9 +72,9 @@ function nextView(root) {
     const reps = it.sets.map((x) => x.reps);
     const same = reps.every((r) => r === reps[0]);
     const scheme = it.kind === 'pu' ? it.sets.length + ' sets' : same ? it.sets.length + ' × ' + reps[0] + (it.sets.some((x) => x.amrap) ? '+' : '') : it.sets.length + ' sets';
-    const weight = it.bodyweight ? (top > 0 ? '+' + num(top) : 'BW') : it.accKind && it.accKind !== 'weight' ? '' : num(top);
+    const weight = it.bodyweight ? (top > 0 ? '+' + num(top) : 'BW') : it.accKind && it.accKind !== 'weight' ? '' : top > 0 ? num(top) : 'BW';
     return h('li', { style: { '--c': 'var(--' + it.colour + ')' } }, h('span.dot'),
-      h('div', h('b', it.name), h('small', TIER[it.kind] + ' · ' + scheme + (it.unit === 's' ? ' s' : ''))),
+      h('div', h('b', it.name), h('small', (it.extra ? 'Balance' : TIER[it.kind]) + ' · ' + scheme + (it.unit === 's' ? ' s' : ''))),
       h('span.w', weight));
   });
 
@@ -91,8 +94,10 @@ function nextView(root) {
       h('div.btnrow',
         h('button.btn', { type: 'button', style: { flex: '2' }, onclick: () => begin(plan) }, 'Start workout'),
         h('button.btn.secondary', { type: 'button', onclick: () => change((x) => { x.prog.next = x.prog.next === 'A' ? 'B' : 'A'; }) }, icon('swap'), plan.wid === 'A' ? 'B' : 'A'))),
+    (s.settings?.balance || 'suggest') !== 'off' && alertsBlock(analyze(s, { today }), s),
     goalsBlock(prog, today),
     block('More', '',
+      row({ title: 'Muscles', sub: 'Body map, sets per muscle, recovery and balance', onclick: () => go('muscles') }),
       row({ title: 'Log cardio', sub: 'Run, walk, bike, row or swim', onclick: () => cardioSheet() }),
       row({ title: 'Accessories in each workout', sub: 'A: ' + names(prog.t3.A, s.custom) + ' · B: ' + names(prog.t3.B, s.custom), onclick: () => accessoriesSheet() })),
   );
@@ -142,7 +147,8 @@ function sessionView(root) {
   clear(root,
     header(ses.wid === 'A' ? 'Workout A' : 'Workout B', (ses.deload ? 'Lighter session · ' : '') + minutes(ses.start) + ' min · ' + doneItems + ' of ' + ses.items.length + ' started'),
     ses.items.map((it, i) => exerciseCard(it, i)),
-    h('div.btnrow', { style: { marginTop: '4px' } },
+    h('button.btn.ghost.wide', { type: 'button', onclick: addExercise }, icon('plus'), 'Add an exercise'),
+    h('div.btnrow', { style: { marginTop: '12px' } },
       h('button.btn.secondary', { type: 'button', onclick: discard }, 'Discard'),
       h('button.btn', { type: 'button', style: { flex: '2' }, onclick: finishSheet }, icon('check'), 'Finish workout')),
   );
@@ -187,7 +193,7 @@ function exerciseCard(it, i) {
 
   return h('article.ex' + (res !== 'skip' && allDone ? '.done' : ''), { style: { '--c': 'var(--' + it.colour + ')' } },
     h('div.head',
-      h('div.t', h('div.tier', TIER[it.kind]), h('div.name', it.name),
+      h('div.t', h('div.tier', it.extra ? 'Balance · ' + TIER[it.kind] : TIER[it.kind]), h('div.name', it.name),
         h('div.meta', setsSummary(it))),
       weightBox,
       h('button.iconbtn', { type: 'button', 'aria-label': 'More for ' + it.name, onclick: () => itemMenu(i), style: { background: 'transparent' } }, icon('more'))),
@@ -311,6 +317,12 @@ function finish(noteText) {
     s.prog = r.prog;
     if (ses.items.some((it) => outcome(it) !== 'skip')) s.sessions.push(ses);
     s.active = null;
+    // Auto balance: put the most needed exercises into the next workout
+    if (s.settings?.balance === 'auto') {
+      const a = analyze(s);
+      s.prog.extra = balanceExtras(a, planWorkout(s.prog, s.prog.next, { custom: s.custom }), { custom: s.custom });
+      if (s.prog.extra.length) changes.push({ exId: '', name: 'Balance', text: 'Added to the next workout: ' + s.prog.extra.map((x) => accessory(x.id, s.custom)?.name).join(', ') + '.', dir: 0 });
+    }
   });
   try { wakeLock?.release(); } catch { /* fine */ }
   scrollTo(0, 0);
@@ -359,3 +371,26 @@ export function accessoriesSheet() {
 }
 
 export { loadable, dayLabel };
+
+/* ---------- Add an exercise during a workout ---------- */
+async function addExercise() {
+  const s = get();
+  const a = analyze(s);
+  const inSession = new Set(s.active.items.map((it) => it.exId));
+  const all = [...ACCESSORIES, ...s.custom].filter((x) => !inSession.has(x.id));
+  // Exercises that train what is lacking come first
+  const need = (id) => Object.entries(worksFor(id, s.custom)).reduce((sum, [m, f]) => {
+    const x = a.by[m];
+    return sum + (x && !x.quiet && (!x.optional || x.focus) ? f * Math.max(0, 1 - x.projected / Math.max(1, x.target[0])) : 0);
+  }, 0);
+  const sorted = all.map((x) => ({ x, n: need(x.id) })).sort((p, q) => q.n - p.n);
+  const id = await choose({ title: 'Add an exercise', options: sorted.map(({ x, n }) => ({
+    value: x.id, text: x.name,
+    sub: (n > 0.3 ? 'Helps: ' : '') + Object.entries(worksFor(x.id, s.custom)).filter(([, f]) => f >= 1).map(([m]) => MUSCLE[m]?.name).join(', '),
+  })) });
+  if (!id) return;
+  const prog = { ...s.prog, extra: [{ id }], t3: { A: [], B: [] } };
+  const plan = planWorkout(prog, s.active.wid, { custom: s.custom });
+  const item = startSession(plan).items.find((it) => it.exId === id);
+  if (item) editActive((x) => { x.items.push({ ...item, note: item.note.replace(/^Added for balance\. /, '') }); });
+}

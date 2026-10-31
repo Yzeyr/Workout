@@ -14,7 +14,7 @@
  *
  * VERSION and FILES are written by tools/version.mjs (run before every release).
  */
-const VERSION = 'workout-89747f52';
+const VERSION = 'workout-651f720d';
 const FILES = [
   './',
   './app.css',
@@ -26,9 +26,11 @@ const FILES = [
   './manifest.webmanifest',
   './src/coach.js',
   './src/data/exercises.js',
+  './src/data/muscles.js',
   './src/dom.js',
   './src/health.js',
   './src/main.js',
+  './src/muscles.js',
   './src/nav.js',
   './src/program.js',
   './src/state.js',
@@ -38,6 +40,7 @@ const FILES = [
   './src/views/body.js',
   './src/views/coach.js',
   './src/views/history.js',
+  './src/views/muscles.js',
   './src/views/settings.js',
   './src/views/train.js',
 ];

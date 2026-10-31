@@ -174,9 +174,9 @@ test('pull-ups: total grows, test day sets the max', () => {
 test('accessories: reps go up to the top of the range, then weight', () => {
   let p = fresh();
   for (const d of ['2026-11-02', '2026-11-04', '2026-11-06', '2026-11-08', '2026-11-10']) p = run(p, d).prog;
-  // row-db is in A: 8 → 10 → 12 → 18 kg × 8
-  assert.equal(p.acc['row-db'].w, 18);
-  assert.equal(p.acc['row-db'].reps, 8);
+  // Romanian deadlift is in A: 8 → 10 → 12 → 45 kg × 8
+  assert.equal(p.acc.rdl.w, 45);
+  assert.equal(p.acc.rdl.reps, 8);
 });
 
 test('deload: offered after hard sessions, runs two lighter sessions', () => {
