@@ -1,34 +1,116 @@
-const CACHE = 'block01-shell-v2';
-const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
+/*
+ * Workout service worker.
+ *
+ * The gym often has weak signal, and iOS may kill the app when you switch to
+ * music, so a relaunch mid-workout must open instantly and must not swap in a
+ * half-loaded new version. So:
+ * - A new version is cached completely or not at all.
+ * - The page (index.html) is network-first, but never waits more than 2 seconds.
+ * - All other app files come from the cached copy of the same version, so files
+ *   from two versions never mix.
+ * - Only good same-origin responses are cached.
+ * - Only this app's own caches are cleaned up. The origin yzeyr.github.io is
+ *   shared with other apps.
+ *
+ * VERSION and FILES are written by tools/version.mjs (run before every release).
+ */
+const VERSION = 'workout-89747f52';
+const FILES = [
+  './',
+  './app.css',
+  './icons/apple-touch-icon.png',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
+  './icons/icon-maskable-512.png',
+  './index.html',
+  './manifest.webmanifest',
+  './src/coach.js',
+  './src/data/exercises.js',
+  './src/dom.js',
+  './src/health.js',
+  './src/main.js',
+  './src/nav.js',
+  './src/program.js',
+  './src/state.js',
+  './src/store.js',
+  './src/timer.js',
+  './src/util.js',
+  './src/views/body.js',
+  './src/views/coach.js',
+  './src/views/history.js',
+  './src/views/settings.js',
+  './src/views/train.js',
+];
+const WAIT_MS = 2000;
 
-self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)));
-  // Stay in "waiting" instead of taking over immediately — the page decides
-  // when to activate a new version, via the update button.
+self.addEventListener('install', (event) => {
+  event.waitUntil((async () => {
+    const responses = await Promise.all(FILES.map(async (url) => {
+      const res = await fetch(url, { cache: 'no-cache' });
+      if (!good(res)) throw new Error('Could not fetch ' + url);
+      return [url, res];
+    }));
+    const cache = await caches.open(VERSION);
+    try {
+      for (const [url, res] of responses) await cache.put(url, res);
+    } catch (e) {
+      await caches.delete(VERSION); // never use a half-filled copy
+      throw e;
+    }
+    await self.skipWaiting();
+  })());
 });
 
-self.addEventListener('activate', e => {
-  e.waitUntil(
-    caches.keys().then(keys => Promise.all(keys.filter(k => k.startsWith('block01-') && k !== CACHE).map(k => caches.delete(k))))
-  );
-  self.clients.claim();
+self.addEventListener('activate', (event) => {
+  event.waitUntil((async () => {
+    for (const name of await caches.keys()) {
+      if (name.startsWith('workout-') && name !== VERSION) await caches.delete(name);
+    }
+    await self.clients.claim();
+  })());
 });
 
-self.addEventListener('message', e => {
-  if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting();
-});
+function good(res) { return res && res.ok && res.type === 'basic'; }
 
-// Network-first for the app shell so a new deploy is picked up when online;
-// falls back to cache when offline (e.g. mid-workout with no signal).
-self.addEventListener('fetch', e => {
-  if (e.request.method !== 'GET') return;
-  e.respondWith(
-    fetch(e.request)
-      .then(res => {
-        const copy = res.clone();
-        caches.open(CACHE).then(c => c.put(e.request, copy));
-        return res;
-      })
-      .catch(() => caches.match(e.request).then(hit => hit || caches.match('./index.html')))
-  );
+async function networkFirst(req, key) {
+  const cache = await caches.open(VERSION);
+  const net = fetch(req.url, { cache: 'no-cache', credentials: 'same-origin' }).then(async (res) => {
+    if (good(res)) await cache.put(key, res.clone());
+    return res;
+  });
+  const deadline = new Promise((resolve) => setTimeout(resolve, WAIT_MS, null));
+  try {
+    const first = await Promise.race([net, deadline]);
+    if (first && (first.ok || !(await cache.match(key)))) return first;
+  } catch { /* offline: use the copy */ }
+  const saved = await cache.match(key);
+  if (saved) return saved;
+  return net;
+}
+
+async function fromCopy(req, key) {
+  const cache = await caches.open(VERSION);
+  const saved = await cache.match(key);
+  if (saved) return saved;
+  const res = await fetch(req.url, { cache: 'no-cache', credentials: 'same-origin' });
+  if (good(res)) await cache.put(key, res.clone());
+  return res;
+}
+
+self.addEventListener('fetch', (event) => {
+  const req = event.request;
+  if (req.method !== 'GET') return;
+  const url = new URL(req.url);
+  if (url.origin !== self.location.origin) return;
+  const scope = new URL(self.registration.scope);
+  if (!url.pathname.startsWith(scope.pathname)) return;
+  // The old app lives in /v1/ with its own service worker and files.
+  if (url.pathname.startsWith(scope.pathname + 'v1/')) return;
+
+  if (req.mode === 'navigate') {
+    event.respondWith(networkFirst(req, './index.html').catch(() => caches.match('./')));
+    return;
+  }
+  const key = '.' + url.pathname.slice(scope.pathname.length - 1);
+  event.respondWith(fromCopy(req, key));
 });
