@@ -40,17 +40,34 @@ test('e1rm counts reps in reserve', () => {
   assert.equal(e1rm(0, 5), 0);
 });
 
-test('workout A then B, alternating', () => {
+test('one heavy leg lift and one heavy upper lift; bench and press never together', () => {
   let p = fresh();
   const a = planWorkout(p);
   assert.equal(a.wid, 'A');
-  assert.deepEqual(a.items.filter((i) => i.kind === 't1').map((i) => i.exId), ['sq', 'op']);
-  assert.ok(a.items.some((i) => i.kind === 't2' && i.exId === 'bp'));
+  assert.deepEqual(a.items.filter((i) => i.kind === 't1').map((i) => i.exId), ['sq', 'bp']);
+  assert.ok(!a.items.some((i) => i.kind === 't2'));
   assert.ok(a.items.some((i) => i.kind === 'pu'));
+  const ap = planWorkout(p, 'A', { upper: 'op' });
+  assert.deepEqual(ap.items.filter((i) => i.kind === 't1').map((i) => i.exId), ['sq', 'op']);
+  assert.ok(!ap.items.some((i) => i.exId === 'bp'));
   p = run(p, '2026-11-02').prog;
   assert.equal(p.next, 'B');
   const b = planWorkout(p);
-  assert.deepEqual(b.items.filter((i) => i.kind === 't1').map((i) => i.exId), ['bp', 'dl']);
+  assert.deepEqual(b.items.filter((i) => i.kind === 't1').map((i) => i.exId), ['dl', 'op']);
+  assert.ok(b.items.some((i) => i.kind === 't2' && i.exId === 'sq'));
+  for (const plan of [a, ap, b]) for (const up of ['bp', 'op']) {
+    const other = up === 'bp' ? 'op' : 'bp';
+    if (plan.items.some((i) => i.exId === up)) assert.ok(!plan.items.some((i) => i.exId === other));
+  }
+});
+
+test('order: exercises for the same muscles are not back to back when avoidable', () => {
+  const plan = planWorkout({ ...fresh(), t3: { A: ['dips', 'inc-db', 'row-db'], B: [] } }, 'A');
+  const ids = plan.items.map((i) => i.exId);
+  assert.deepEqual(ids.slice(0, 2), ['sq', 'bp']);
+  // After bench, something that is not a chest press comes next
+  assert.ok(!['dips', 'inc-db'].includes(ids[2]), ids.join(','));
+  for (let i = 3; i < ids.length; i++) assert.ok(!(['dips', 'inc-db'].includes(ids[i]) && ['dips', 'inc-db'].includes(ids[i - 1])), ids.join(','));
 });
 
 test('a skipped session changes nothing and keeps the rotation', () => {
@@ -72,15 +89,16 @@ test('ok adds one step, easy two, hard repeats', () => {
 
 test('press adds reps before weight when the bar cannot move 1.25 kg', () => {
   let p = fresh();
-  p = run(p, '2026-11-02').prog;
+  p = run(p, '2026-11-02').prog; // A: squat + bench
+  p = run(p, '2026-11-04').prog; // B: deadlift + press → 3×6
   assert.equal(t1(p, 'op').w, 35);
   assert.equal(t1(p, 'op').reps, 6);
-  const plan = planWorkout(p, 'A', { today: '2026-11-04' });
+  const plan = planWorkout(p, 'B', { today: '2026-11-06' });
   assert.equal(plan.items.find((i) => i.exId === 'op').sets[0].reps, 6);
-  p = run(p, '2026-11-04').prog; // B
-  p = run(p, '2026-11-06').prog; // A → 7
-  p = run(p, '2026-11-08').prog; // B
-  p = run(p, '2026-11-10').prog; // A → 37.5 × 5
+  p = run(p, '2026-11-06').prog; // A
+  p = run(p, '2026-11-08').prog; // B → 7
+  p = run(p, '2026-11-10').prog; // A
+  p = run(p, '2026-11-12').prog; // B → 37.5 × 5
   assert.equal(t1(p, 'op').w, 37.5);
   assert.equal(t1(p, 'op').reps, 5);
 });
@@ -151,11 +169,11 @@ test('break table and climbing back with double steps', () => {
 
 test('T2 double progression 8 → 10 reps, then weight', () => {
   let p = fresh();
-  const w0 = p.lifts.bp.t2.w;
-  for (const d of ['2026-11-02', '2026-11-04', '2026-11-06', '2026-11-08', '2026-11-10']) p = run(p, d).prog;
-  // Bench was T2 on the three A days: 8 → 9 → 10 → weight
-  assert.equal(p.lifts.bp.t2.reps, 8);
-  assert.equal(p.lifts.bp.t2.w, loadable(w0 + 2.5));
+  const w0 = p.lifts.sq.t2.w;
+  for (const d of ['2026-11-02', '2026-11-04', '2026-11-06', '2026-11-08', '2026-11-10', '2026-11-12']) p = run(p, d).prog;
+  // The light squat on the three deadlift days: 8 → 9 → 10 → weight
+  assert.equal(p.lifts.sq.t2.reps, 8);
+  assert.equal(p.lifts.sq.t2.w, loadable(w0 + 2.5));
 });
 
 test('pull-ups: total grows, test day sets the max', () => {

@@ -20,7 +20,8 @@
    - VO₂ max norms are rough bands by age and sex (ACSM / FRIEND registry). */
 
 import { analyze } from './muscles.js';
-import { planWorkout, outcome, iso, daysBetween } from './program.js';
+import { outcome, iso, daysBetween } from './program.js';
+import { planToday } from './planner.js';
 import { worksFor } from './data/muscles.js';
 
 const add = (isoDate, n) => { const d = new Date(isoDate + 'T12:00'); d.setDate(d.getDate() + n); return iso(d); };
@@ -97,7 +98,7 @@ export function readiness(state, health, { today = iso(), now = new Date() } = {
   // 3. Muscles for today's planned workout: how recovered are they?
   if (state.prog) {
     const a = analyze(state, { today, now });
-    const plan = planWorkout(state.prog, state.prog.next, { today, custom: state.custom || [] });
+    const plan = planToday(state, { today, now });
     const main = new Map();
     for (const it of plan.items.filter((i) => i.kind === 't1')) for (const [m, w] of Object.entries(worksFor(it.exId))) if (w >= 1) main.set(m, true);
     const rec = [...main.keys()].map((m) => a.by[m]).filter(Boolean);

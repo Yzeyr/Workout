@@ -11,7 +11,8 @@ untouched in `v1/` with its own service worker and its data under the
 ## Layout
 - `index.html`, `app.css`, `manifest.webmanifest`, `sw.js`, `icons/`
 - `src/main.js` start-up, tabs, routing (`#train`, `#history`, `#body`, `#coach`, `#settings`)
-- `src/program.js` **the brain**: A/B rotation, progression, failure ladder, waves, break rules, deloads, pull-ups, accessories. Pure functions, tested.
+- `src/planner.js` **today's lifts**: one heavy lower (squat/deadlift) + one heavy upper (bench/press) picked by how due each lift is (per week: squat 2, bench 2, deadlift 1, press 1.3) and how recovered its muscles are; manual pick via `prog.pick` lasts for today only
+- `src/program.js` **the brain**: workouts (wid A = squat day, B = deadlift day), progression, failure ladder, waves, break rules, deloads, pull-ups, accessories. Pure functions, tested.
 - `src/data/exercises.js` main lifts, workouts, accessories, rest tips, cardio types, measurements
 - `src/state.js` the saved state (`workout:state`), `src/store.js` localStorage with visible errors
 - `src/health.js` streaming reader for the Apple Health export (`export.zip`/`export.xml`) → daily summaries
@@ -40,6 +41,7 @@ Icons: `node tools/icons.mjs`. Local preview: serve the repo under `/Workout/`.
 
 ## Decisions
 - **New program, not the old one.** The owner chose "start fresh" with both a ready-made main program and their own exercises, training "when I can". A/B full-body rotation, tiers T1/T2/T3, 4-level rating of the last set, failure ladder 3×5 → 5×3 → 6×2 → −10 %, waves after two resets in 8 weeks, break table by days since that lift. See `docs/research.md` for what is research and what is convention.
+- **No blind A/B rotation** (owner: "more flexible, don't put bench right after shoulder press"). The planner picks today's pair; bench and press are never in the same workout; deadlift days add a light squat (T2), squat days have no T2. Inside a workout the heavy lifts come first, then each next exercise is the one sharing the fewest muscles with the one before (`orderItems`).
 - **Press and bench > 60 kg add reps before weight** (3×5 → 3×6 → 3×7 → +2.5 kg) when the smallest jump is 2.5 kg.
 - **No planned deloads.** Offered only when hard/failed lifts, resets or "beat up" call for it.
 - **Goal pace is a curve** (fast early, slow late), not a straight line. Bench 130 is the biggest stretch.

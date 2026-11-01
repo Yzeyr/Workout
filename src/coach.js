@@ -18,6 +18,7 @@ import { health } from './views/body.js';
 import { analyze, bestExercise } from './muscles.js';
 import { MUSCLE } from './data/muscles.js';
 import { readiness, insights } from './insights.js';
+import { planToday } from './planner.js';
 
 const SDK_URL = 'https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk@0.133.0/+esm';
 const MODEL = 'claude-opus-5-5';
@@ -41,7 +42,7 @@ const SYSTEM = `You are the personal coach inside "Workout", a training app on t
 The owner is a Norwegian house painter (physically active job, irregular hours) who started barbell training in August 2026 from the empty bar. Goals over two years: squat 155 kg, bench 130 kg, deadlift 210 kg, overhead press 80 kg, 20 pull-ups — and, in their words, to become "the healthiest version of myself".
 
 How the app's program works (the "brain" — don't contradict it without saying why):
-- Two full-body workouts, A (squat + press heavy, bench light) and B (bench + deadlift heavy, squat light), alternate as "the next workout". No calendar days; a missed day is never a failure.
+- Each gym workout has one heavy lower lift (squat or deadlift) and one heavy upper lift (bench or press), picked each day by the planner from how due each lift is (squat and bench ~2×/week, deadlift ~1×, press ~1.3×) and how recovered its muscles are. Bench and press are never in the same workout. Deadlift days add a light squat. The owner can change today's pick. No calendar; a missed day is never a failure.
 - Main lifts (T1) are 3×5. After each lift the owner rates the last set easy/ok/hard/failed. Ok adds one step, easy two, hard repeats. A miss repeats the weight; the next miss switches to 5×3, then 6×2, then the weight resets −10 % to 3×5. Two resets within 8 weeks moves that lift to 3-week waves with a training max.
 - Second lifts (T2) run 3×8–10 double progression. Accessories (T3) go up by reps, then weight.
 - After a break, the load drops by days since that lift was done (≤13 days: same; 14–20: −10 %; 21–34: −15 %; 35–60: −25 %; more: −40 %), then climbs back in double steps.
@@ -96,7 +97,7 @@ function overview() {
   const s = get(), today = iso(), prog = s.prog;
   const hd = health();
   const birthYear = s.profile.birthYear || (hd?.profile?.birthDate ? Number(hd.profile.birthDate.slice(0, 4)) : null);
-  const plan = prog ? planWorkout(prog, prog.next, { today, custom: s.custom }) : null;
+  const plan = prog ? planToday(s, { today }) : null;
   const freq = (n) => Math.round(s.sessions.filter((x) => x.date > daysAgo(n)).length / (n / 7) * 10) / 10;
   const latest = (id) => { const l = s.body[id] || []; return l.length ? l[l.length - 1] : null; };
   return {
@@ -132,7 +133,7 @@ function overview() {
 function trainingLog(days) {
   const s = get(), from = daysAgo(days);
   return s.sessions.filter((x) => x.date >= from).map((x) => ({
-    date: x.date, workout: x.place === 'home' ? (x.kind === 'short' ? 'home-short' : 'home-full') : x.wid, minutes: x.end ? Math.round((new Date(x.end) - new Date(x.start)) / 60000) : null,
+    date: x.date, workout: x.place === 'home' ? (x.kind === 'short' ? 'home-short' : 'home-full') : (x.lower ? x.lower + '+' + x.upper : x.wid), minutes: x.end ? Math.round((new Date(x.end) - new Date(x.start)) / 60000) : null,
     light: x.deload || undefined, feltBeatUp: x.beatUp || undefined, note: x.note || undefined,
     exercises: x.items.filter((it) => outcome(it) !== 'skip').map((it) => ({
       name: it.name, tier: it.kind,

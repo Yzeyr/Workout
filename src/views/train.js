@@ -16,6 +16,7 @@ import { cardioSheet } from './body.js';
 import { go } from '../nav.js';
 import { analyze, balanceExtras } from '../muscles.js';
 import { alertsBlock } from './muscles.js';
+import { planToday, options } from '../planner.js';
 import { readinessCard } from './today.js';
 import { badges, newBadges } from '../badges.js';
 import { worksFor, MUSCLE } from '../data/muscles.js';
@@ -67,7 +68,7 @@ function header(title, eyebrow, right = null) {
 /* ---------- Next workout ---------- */
 function nextView(root) {
   const s = get(), prog = s.prog, today = iso();
-  const plan = planWorkout(prog, prog.next, { today, custom: s.custom });
+  const plan = planToday(s, { today });
   const last = s.sessions[s.sessions.length - 1];
   const reason = deloadReason(prog, s.sessions, today);
 
@@ -83,15 +84,15 @@ function nextView(root) {
         h('button', { type: 'button', onclick: () => change((x) => { x.prog = startDeload(x.prog); }) }, 'Yes'),
         h('button', { type: 'button', onclick: () => change((x) => { x.prog = skipDeload(x.prog); }) }, 'No'))),
     h('div.hero',
-      h('div.kicker', plan.deload ? 'Next · lighter session' : 'Next'),
+      h('div.kicker', plan.deload ? 'Today · lighter session' : plan.choice.manual ? 'Today · your choice' : 'Today'),
       h('h2', plan.name),
-      h('p.why', plan.items.filter((i) => i.kind === 't1').map((i, n) => (n ? MAIN[i.exId].short.toLowerCase() : MAIN[i.exId].short)).join(' and ') + ' heavy, ' + plan.items.filter((i) => i.kind === 't2').map((i) => MAIN[i.exId].short.toLowerCase()).join(', ') + ' lighter, then pull-ups and accessories.'),
+      h('p.why', whyLine(plan)),
       h('ul.plan', planRows),
-      [...plan.notes, ...plan.items.filter((i) => i.note && i.kind === 't1' && /days|Stalled|Missed|Wave/.test(i.note)).map((i) => MAIN[i.exId].short + ': ' + i.note)]
+      [...plan.choice.reasons, ...plan.notes, ...plan.items.filter((i) => i.note && i.kind === 't1' && /days|Stalled|Missed|Wave/.test(i.note)).map((i) => MAIN[i.exId].short + ': ' + i.note)]
         .map((n) => h('p.muted.small', { style: { marginTop: '10px' } }, n)),
       h('div.btnrow',
         h('button.btn', { type: 'button', style: { flex: '2' }, onclick: () => begin(plan) }, 'Start workout'),
-        h('button.btn.secondary', { type: 'button', onclick: () => change((x) => { x.prog.next = x.prog.next === 'A' ? 'B' : 'A'; }) }, icon('swap'), plan.wid === 'A' ? 'B' : 'A'))),
+        h('button.btn.secondary', { type: 'button', onclick: () => changeSheet() }, icon('swap'), 'Change'))),
     (s.settings?.balance || 'suggest') !== 'off' && alertsBlock(analyze(s, { today }), s),
     goalsBlock(prog, today),
     block('More', '',
@@ -141,7 +142,7 @@ function homeView(root, last, today) {
     header('Train', last ? 'Last trained ' + ago(last.date, today) : 'First workout'),
     placeSeg('home'),
     readinessCard({ gym: false }),
-    h('div.banner', icon('info'), h('div.text', h('b', 'The barbell lifts wait for the gym'), 'Your next gym day is still workout ' + s.prog.next + ', with the same weights. Home sessions train the same muscles with what you have.')),
+    h('div.banner', icon('info'), h('div.text', h('b', 'The barbell lifts wait for the gym'), 'The next gym day stays the same, with the same weights (' + planToday(s, { today }).name.toLowerCase() + ' if it were today). Home sessions train the same muscles with what you have.')),
     card(full, 'Can\'t get to the gym', '~40 min', 'Squat, push, hinge, row, press and core' + (gear.includes('bar') ? ', plus pull-ups' : '') + ' — picked for what your muscles need now.'),
     card(short, 'Between gym days', '10–20 min', 'Fills the biggest gaps with muscles that are recovered, short of failure, so you are fresh for the gym.'),
     (s.settings?.balance || 'suggest') !== 'off' && alertsBlock(analyze(s, { today }), s),
@@ -199,6 +200,30 @@ async function keepAwake() {
   try { if ('wakeLock' in navigator && !wakeLock) { wakeLock = await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release', () => { wakeLock = null; }); } } catch { /* not allowed: fine */ }
 }
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && get()?.active) keepAwake(); });
+
+/** One line on what today is and why these lifts. */
+function whyLine(plan) {
+  const t1 = plan.items.filter((i) => i.kind === 't1').map((i, n) => (n ? MAIN[i.exId].short.toLowerCase() : MAIN[i.exId].short));
+  const t2 = plan.items.filter((i) => i.kind === 't2').map((i) => MAIN[i.exId].short.toLowerCase());
+  return t1.join(' and ') + ' heavy' + (t2.length ? ', a light ' + t2.join(', ') : '') + ', then pull-ups and accessories. ' + (plan.choice?.manual ? 'Your choice for today.' : 'Picked from what is due and what is recovered.');
+}
+
+/** Pick today's lifts yourself: the four combinations, best first, with how due and recovered each lift is. */
+function changeSheet() {
+  const s = get();
+  const list = options(s);
+  const cur = planToday(s).choice;
+  const name = (o) => ({ sq: 'Squat', dl: 'Deadlift' })[o.lower] + ' + ' + ({ bp: 'bench', op: 'press' })[o.upper];
+  sheet((close) => h('div',
+    h('h2', 'Today’s lifts'),
+    h('p.muted.lead', 'One heavy leg lift and one heavy upper-body lift. Bench and press are never together: they tire the same shoulders and triceps.'),
+    h('div.optlist', list.map((o) => h('button', {
+      type: 'button', 'aria-pressed': String(o.lower === cur.lower && o.upper === cur.upper),
+      onclick: () => { change((x) => { x.prog.pick = o.best ? null : { date: iso(), lower: o.lower, upper: o.upper }; }); close(); },
+    }, h('span', name(o) + (o.best ? ' · suggested' : ''), h('small', o.scores.map((sc) => sc.name + ': ' + sc.text).join(' — '))),
+    o.lower === cur.lower && o.upper === cur.upper && icon('check')))),
+    h('div.btnrow', h('button.btn.secondary', { type: 'button', onclick: () => close() }, 'Close'))));
+}
 
 function begin(plan) {
   unlockSound();
@@ -389,7 +414,7 @@ function finish(noteText) {
     // Auto balance: put the most needed exercises into the next workout
     if (s.settings?.balance === 'auto') {
       const a = analyze(s);
-      s.prog.extra = balanceExtras(a, planWorkout(s.prog, s.prog.next, { custom: s.custom }), { custom: s.custom });
+      s.prog.extra = balanceExtras(a, planToday(s), { custom: s.custom });
       if (s.prog.extra.length) changes.push({ exId: '', name: 'Balance', text: 'Added to the next workout: ' + s.prog.extra.map((x) => accessory(x.id, s.custom)?.name).join(', ') + '.', dir: 0 });
     }
   });

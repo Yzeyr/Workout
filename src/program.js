@@ -9,7 +9,8 @@
    - Load after a break depends on the days since that lift was last done.
    - Deloads only when something says so (hard/failed lifts, resets, feeling beat up). */
 
-import { MAIN, MAIN_IDS, WORKOUTS, DEFAULT_T3, accessory } from './data/exercises.js';
+import { MAIN, MAIN_IDS, DEFAULT_T3, accessory } from './data/exercises.js';
+import { worksFor } from './data/muscles.js';
 
 export const BAR = 20;
 export const RIR = { easy: 3, ok: 1.5, hard: 0, fail: 0 };
@@ -110,16 +111,27 @@ function wantedInc(id, lift) {
 }
 
 /* ---------- Planning ---------- */
-/** The workout to do next, with weights. Nothing is changed. */
-export function planWorkout(prog, wid = prog.next, { today = iso(), custom = [] } = {}) {
-  const w = WORKOUTS[wid];
+/* Every gym workout has one heavy lower-body lift and one heavy upper-body lift.
+   wid 'A' = squat day, 'B' = deadlift day (their accessory lists live in prog.t3).
+   The upper lift (bench or press) is chosen by the planner (planner.js) from what
+   is due and recovered; without a choice, squat goes with bench and deadlift with press.
+   Bench and press are never in the same workout: they wear out the same front
+   delts and triceps. Deadlift days get a light squat to keep squatting 2–3 times a week. */
+export const DEFAULT_UPPER = { A: 'bp', B: 'op' };
+
+/** The workout to do, with weights. Nothing is changed. upper: 'bp' | 'op' (optional). */
+export function planWorkout(prog, wid = prog.next, { today = iso(), custom = [], upper = null } = {}) {
+  wid = wid === 'B' ? 'B' : 'A';
+  const lower = wid === 'B' ? 'dl' : 'sq';
+  const up = upper === 'bp' || upper === 'op' ? upper : DEFAULT_UPPER[wid];
   const deload = !!(prog.deload && prog.deload.left > 0);
   const items = [];
   const notes = [];
   if (deload) notes.push('Lighter session: 90 % weights, half the sets. Lets fatigue drop without losing strength.');
 
-  for (const id of w.t1) items.push(planT1(prog, id, today, deload));
-  for (const id of w.t2) items.push(planT2(prog, id, today, deload));
+  items.push(planT1(prog, lower, today, deload));
+  items.push(planT1(prog, up, today, deload));
+  if (lower === 'dl') items.push(planT2(prog, 'sq', today, deload));
   items.push(planPullups(prog, wid, today, deload));
   for (const aid of (prog.t3[wid] || [])) {
     const a = accessory(aid, custom);
@@ -132,7 +144,35 @@ export function planWorkout(prog, wid = prog.next, { today = iso(), custom = [] 
     const it = planT3(prog, a, deload);
     items.push({ ...it, key: 'x-' + a.id, extra: true, note: 'Added for balance' + (x.why ? ': ' + x.why.toLowerCase() : '') + '. ' + it.note });
   }
-  return { wid, name: w.name, items, notes, deload };
+  return { wid, lower, upper: up, name: MAIN[lower].short + ' + ' + MAIN[up].short.toLowerCase(), items: orderItems(items, custom), notes, deload };
+}
+
+/** How much two exercises load the same muscles (sum of the smaller share per muscle). */
+export function overlap(a, b, custom = []) {
+  const wa = worksFor(a, custom), wb = worksFor(b, custom);
+  let s = 0;
+  for (const [m, f] of Object.entries(wa)) if (wb[m]) s += Math.min(f, wb[m]);
+  return s;
+}
+
+/* Order: the heavy lifts first while fresh, then each next exercise is the one that
+   shares the fewest muscles with the one just before it (ties keep the planned order).
+   So two exercises for the same muscles never come straight after each other when
+   anything else could go in between. */
+export function orderItems(items, custom = []) {
+  const heavy = items.filter((i) => i.kind === 't1');
+  const rest = items.filter((i) => i.kind !== 't1');
+  const out = [...heavy];
+  while (rest.length) {
+    const prev = out[out.length - 1];
+    let best = 0, bestScore = Infinity;
+    rest.forEach((it, i) => {
+      const sc = prev ? overlap(prev.exId, it.exId, custom) : 0;
+      if (sc < bestScore - 1e-9) { best = i; bestScore = sc; }
+    });
+    out.push(rest.splice(best, 1)[0]);
+  }
+  return out;
 }
 
 function gapOf(last, today) { return last ? daysBetween(last, today) : null; }
@@ -241,7 +281,7 @@ export function planT3(prog, a, deload) {
 export function startSession(plan, now = new Date()) {
   return {
     id: 's' + now.getTime().toString(36),
-    wid: plan.wid, place: plan.place || 'gym', kind: plan.kind || 'full', date: iso(now), start: now.toISOString(), end: null,
+    wid: plan.wid, lower: plan.lower, upper: plan.upper, place: plan.place || 'gym', kind: plan.kind || 'full', date: iso(now), start: now.toISOString(), end: null,
     deload: plan.deload, note: '', beatUp: false,
     items: plan.items.map((it) => ({ ...it, sets: it.sets.map((s) => ({ ...s, done: null })), rating: null, manual: false })),
   };
@@ -285,6 +325,7 @@ export function applySession(prog0, session, { custom = [] } = {}) {
   // Home sessions leave the gym rotation alone: the heavy lifts wait for the next gym day
   if (trained && session.place !== 'home') {
     prog.extra = []; // one-off extras are used up
+    prog.pick = null; // a manual choice of lifts was for that workout only
     prog.next = session.wid === 'A' ? 'B' : 'A';
     prog.sinceBreak = (prog.sinceBreak || 0) + 1;
   }

@@ -62,7 +62,7 @@ export function planHome(state, kind = 'full', { today = iso(), now = new Date()
     }
     return {
       wid: 'H', place: 'home', kind: 'full', name: 'Home workout', items, deload: false,
-      notes: ['The barbell lifts wait for the gym — your next gym day is still workout ' + prog.next + '.'],
+      notes: ['The barbell lifts wait for the gym. Your next gym day is unchanged.'],
     };
   }
 
@@ -92,7 +92,7 @@ export function planHome(state, kind = 'full', { today = iso(), now = new Date()
   }
   return {
     wid: 'S', place: 'home', kind: 'short', name: 'Short home session', items, deload: false,
-    notes: ['10–20 minutes, short of failure. It fills gaps without tiring you for the next gym day (workout ' + prog.next + ').'],
+    notes: ['10–20 minutes, short of failure. It fills gaps without tiring you for the next gym day.'],
   };
 }
 
@@ -102,5 +102,6 @@ function slotColour(slot) {
 
 export function sessionName(ses) {
   if (ses.place === 'home') return ses.kind === 'short' ? 'Short home session' : 'Home workout';
+  if (ses.lower && ses.upper) return ({ sq: 'Squat', dl: 'Deadlift' })[ses.lower] + ' + ' + ({ bp: 'bench', op: 'press' })[ses.upper];
   return ses.wid === 'A' ? 'Workout A' : 'Workout B';
 }
