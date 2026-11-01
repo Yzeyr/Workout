@@ -102,7 +102,7 @@ function strengthBlock(s, today) {
 /* ---------- Rows and details ---------- */
 function sessionRow(ses) {
   const t1 = ses.items.filter((it) => it.kind === 't1' && outcome(it) !== 'skip');
-  const sub = ses.place === 'home' ? ses.items.filter((it) => outcome(it) !== 'skip').map((it) => it.name).join(' · ') : t1.map((it) => MAIN[it.exId].short + ' ' + num(Math.max(...it.sets.map((x) => x.w))) + (outcome(it) === 'fail' ? ' ✗' : '')).join(' · ');
+  const sub = ses.place === 'home' || ses.kind === 'free' ? ses.items.filter((it) => outcome(it) !== 'skip').map((it) => it.name).join(' · ') : t1.map((it) => MAIN[it.exId].short + ' ' + num(Math.max(...it.sets.map((x) => x.w))) + (outcome(it) === 'fail' ? ' ✗' : '')).join(' · ');
   return row({
     title: dayLabel(ses.date) + ' · ' + sessionName(ses) + (ses.deload ? ' (light)' : ''),
     sub: [sub, ses.note && '“' + ses.note.slice(0, 80) + (ses.note.length > 80 ? '…' : '') + '”'],

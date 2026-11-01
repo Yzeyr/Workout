@@ -14,7 +14,7 @@
  *
  * VERSION and FILES are written by tools/version.mjs (run before every release).
  */
-const VERSION = 'workout-be6fe358';
+const VERSION = 'workout-924d0c9b';
 const FILES = [
   './',
   './app.css',

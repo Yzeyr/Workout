@@ -154,6 +154,14 @@ export function analyze(state, { today = iso(), now = new Date() } = {}) {
     if (x.run < 2) continue;
     const w = worksFor(x.exId, custom);
     const hits = Object.entries(w).filter(([, f]) => f >= 1).map(([m]) => MUSCLE[m].name.toLowerCase());
+    // Done something else instead every time: the muscles got work, only the lift itself is missing
+    if (x.replaced === x.run) {
+      if (x.kind !== 't1' && x.kind !== 'pu') continue;
+      alerts.push({ id: 'repl-' + x.exId, kind: 'replaced', exId: x.exId, muscle: Object.entries(w).sort((p, q) => q[1] - p[1])[0]?.[0], severity: x.run >= 3 ? 2 : 1,
+        title: x.name + ' replaced in your last ' + x.run + ' workouts',
+        text: 'You did ' + x.by.join(', ').toLowerCase() + ' instead, so the muscles got their work. Strength in the ' + x.name.toLowerCase() + ' itself only grows from doing it — try it next time, lighter is fine.' });
+      continue;
+    }
     alerts.push({
       id: 'skip-' + x.exId, kind: 'skipped', exId: x.exId,
       muscle: Object.entries(w).sort((p, q) => q[1] - p[1])[0]?.[0],
@@ -200,8 +208,11 @@ export function skippedRuns(sessions) {
   const out = new Map();
   for (let i = sessions.length - 1; i >= 0; i--) {
     for (const it of sessions[i].items || []) {
-      const e = out.get(it.exId) || { exId: it.exId, name: it.name, kind: it.kind, run: 0, open: true };
-      if (e.open) { if (outcome(it) === 'skip') e.run++; else e.open = false; }
+      const e = out.get(it.exId) || { exId: it.exId, name: it.name, kind: it.kind, run: 0, replaced: 0, by: [], open: true };
+      if (e.open) {
+        if (outcome(it) === 'skip') { e.run++; if (it.replacedBy) { e.replaced++; if (!e.by.includes(it.replacedBy)) e.by.push(it.replacedBy); } }
+        else e.open = false;
+      }
       out.set(it.exId, e);
     }
   }

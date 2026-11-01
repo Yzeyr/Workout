@@ -101,6 +101,7 @@ function slotColour(slot) {
 }
 
 export function sessionName(ses) {
+  if (ses.kind === 'free') return 'Own workout';
   if (ses.place === 'home') return ses.kind === 'short' ? 'Short home session' : 'Home workout';
   if (ses.lower && ses.upper) return ({ sq: 'Squat', dl: 'Deadlift' })[ses.lower] + ' + ' + ({ bp: 'bench', op: 'press' })[ses.upper];
   return ses.wid === 'A' ? 'Workout A' : 'Workout B';

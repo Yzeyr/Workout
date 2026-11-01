@@ -131,6 +131,7 @@ export function alertsBlock(a, s, { all = false } = {}) {
   const planned = new Set([...(s.prog.extra || []).map((x) => x.id)]);
   const items = list.slice(0, all ? 12 : 3).map((al) => {
     if (al.kind === 'skipped') return skippedAlert(al, a, s);
+    if (al.kind === 'replaced') return h('div.alert.sev' + al.severity, h('div.alert-head', icon('info'), h('b', al.title)), h('p', al.text));
     const ex = bestExercise(a, al.muscle, { custom: s.custom, exclude: [...s.prog.t3.A, ...s.prog.t3.B].filter((id) => !planned.has(id)) });
     const already = ex && planned.has(ex.id);
     return h('div.alert.sev' + al.severity,

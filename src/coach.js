@@ -133,7 +133,7 @@ function overview() {
 function trainingLog(days) {
   const s = get(), from = daysAgo(days);
   return s.sessions.filter((x) => x.date >= from).map((x) => ({
-    date: x.date, workout: x.place === 'home' ? (x.kind === 'short' ? 'home-short' : 'home-full') : (x.lower ? x.lower + '+' + x.upper : x.wid), minutes: x.end ? Math.round((new Date(x.end) - new Date(x.start)) / 60000) : null,
+    date: x.date, workout: x.kind === 'free' ? 'own workout' : x.place === 'home' ? (x.kind === 'short' ? 'home-short' : 'home-full') : (x.lower ? x.lower + '+' + x.upper : x.wid), minutes: x.end ? Math.round((new Date(x.end) - new Date(x.start)) / 60000) : null,
     light: x.deload || undefined, feltBeatUp: x.beatUp || undefined, note: x.note || undefined,
     exercises: x.items.filter((it) => outcome(it) !== 'skip').map((it) => ({
       name: it.name, tier: it.kind,
@@ -141,6 +141,7 @@ function trainingLog(days) {
       lastSet: it.rating, result: outcome(it),
       e1rm: it.kind === 't1' ? Math.max(0, ...it.sets.filter((st) => st.done > 0).map((st) => e1rm(st.w, st.done, st.amrap ? 0 : RIR[it.rating || 'ok']))) : undefined,
     })),
+    replaced: x.items.filter((it) => it.replacedBy).map((it) => it.name + ' → ' + it.replacedBy),
     programChanges: (x.changes || []).map((c) => c.name + ': ' + c.text),
   }));
 }

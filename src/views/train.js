@@ -4,7 +4,7 @@ import { h, icon, clear, sheet, confirmSheet, choose, block, row, fold, toast } 
 import { get, change, setupProgram } from '../state.js';
 import {
   planWorkout, startSession, applySession, outcome, deloadReason, startDeload, skipDeload,
-  plates, liftStatus, iso, BAR, loadable,
+  plates, liftStatus, iso, BAR, loadable, planT1, overlap,
 } from '../program.js';
 import { MAIN, MAIN_IDS, ACCESSORIES, GROUPS, REST_TIPS, accessory } from '../data/exercises.js';
 import { startRest, stopRest, unlockSound } from '../timer.js';
@@ -98,6 +98,7 @@ function nextView(root) {
     (s.settings?.balance || 'suggest') !== 'off' && alertsBlock(analyze(s, { today }), s),
     goalsBlock(prog, today),
     block('More', '',
+      row({ title: 'Log your own workout', sub: 'Did something else? Add exercises as you go, or log one afterwards', onclick: beginFree }),
       row({ title: 'Muscles', sub: 'Body map, sets per muscle, recovery and balance', onclick: () => go('muscles') }),
       row({ title: 'Log cardio', sub: 'Run, walk, bike, row or swim', onclick: () => cardioSheet() }),
       row({ title: 'Accessories in each workout', sub: 'A: ' + names(prog.t3.A, s.custom) + ' · B: ' + names(prog.t3.B, s.custom), onclick: () => accessoriesSheet() })),
@@ -150,6 +151,7 @@ function homeView(root, last, today) {
     (s.settings?.balance || 'suggest') !== 'off' && alertsBlock(analyze(s, { today }), s),
     block('Home', '',
       row({ title: 'Equipment at home', sub: gearText(gear), onclick: gearSheet }),
+      row({ title: 'Log your own workout', sub: 'Add exercises as you go, or log one afterwards', onclick: beginFree }),
       row({ title: 'Muscles', sub: 'Body map, sets per muscle, recovery and balance', onclick: () => go('muscles') }),
       row({ title: 'Log cardio', sub: 'Run, walk, bike, row or swim', onclick: () => cardioSheet() })),
   );
@@ -252,6 +254,11 @@ function sessionView(root) {
 function editActive(fn, opts) { change((s) => { if (s.active) fn(s.active); }, opts); }
 
 function exerciseCard(it, i) {
+  if (it.replacedBy) {
+    return h('article.ex.done', { style: { '--c': 'var(--' + it.colour + ')' } },
+      h('div.head', h('div.t', h('div.tier', TIER[it.kind] + ' · replaced'), h('div.name', it.name), h('div.meta', 'You did ' + it.replacedBy.toLowerCase() + ' instead. ' + (it.kind === 't3' ? '' : 'Same weight next time.'))),
+        h('button.iconbtn', { type: 'button', 'aria-label': 'Undo replace', style: { background: 'transparent' }, onclick: () => undoInstead(i) }, icon('undo'))));
+  }
   const res = outcome(it);
   const allDone = it.sets.every((x) => x.done != null);
   const uniform = it.sets.every((x) => x.w === it.sets[0].w);
@@ -357,6 +364,7 @@ function itemMenu(i) {
       h('button', { type: 'button', onclick: () => { editActive((a) => { a.items[i].sets.forEach((x) => { x.done = x.reps; }); }); close(); } }, h('span', 'Mark all sets done')),
       h('button', { type: 'button', onclick: () => { editActive((a) => { a.items[i].sets.forEach((x) => { x.done = null; }); a.items[i].rating = null; }); close(); } }, h('span', 'Clear sets', h('small', 'Nothing done means skipped: no change next time'))),
       it.kind !== 't1' && h('button', { type: 'button', onclick: () => { editActive((a) => { a.items[i].sets.push({ ...a.items[i].sets[a.items[i].sets.length - 1], done: null, amrap: false, test: false }); }); close(); } }, h('span', 'Add a set')),
+      !it.instead && h('button', { type: 'button', onclick: () => { close(); insteadOf(i); } }, h('span', 'I did something else instead', h('small', 'Log what you did. It counts for the muscles; ' + (it.kind === 't3' ? 'this one stays as it is.' : 'this lift keeps its weight and comes back.')))),
       it.kind === 't3' && h('button', { type: 'button', onclick: async () => { close(); swapAccessory(i); } }, h('span', 'Swap for another exercise', h('small', 'For today only'))),
     ),
     h('div.btnrow', h('button.btn.secondary', { type: 'button', onclick: () => close() }, 'Close'))));
@@ -388,17 +396,27 @@ function finishSheet() {
     type: 'button', 'aria-pressed': String(!!ses.beatUp === v),
     onclick: (e) => { editActive((a) => { a.beatUp = v; }, { quiet: true }); [...beat.children].forEach((b) => b.setAttribute('aria-pressed', String(b === e.currentTarget))); },
   }, t)));
+  // When it was: today by default, or a day you log afterwards
+  const today = iso();
+  const yday = (() => { const d = new Date(); d.setDate(d.getDate() - 1); return iso(d); })();
+  let dato = ses.date || today;
+  const datoFelt = h('input', { type: 'date', value: dato, max: today, style: { flex: '1.2', minHeight: '44px' }, onchange: (e) => { if (e.target.value) { dato = e.target.value; mark(); } } });
+  const knapp = (d, t) => h('button', { type: 'button', 'data-d': d, onclick: () => { dato = d; datoFelt.value = d; mark(); } }, t);
+  const when = h('div.seg', { style: { alignItems: 'center' } }, knapp(today, 'Today'), knapp(yday, 'Yesterday'), datoFelt);
+  const mark = () => [...when.querySelectorAll('button')].forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.d === dato)));
+  mark();
   sheet((close) => h('div',
     h('h2', 'Finish workout'),
     h('p.muted.lead', started.length + ' of ' + ses.items.length + ' exercises done · ' + minutes(ses.start) + ' min. Exercises you didn\'t start are skipped — they stay the same next time.'),
+    h('label.field', h('span', 'When'), when),
     h('label.field', h('span', 'How do you feel?'), beat),
     h('label.field', h('span', 'Note'), note),
     h('div.btnrow',
       h('button.btn.secondary', { type: 'button', onclick: () => close() }, 'Back'),
-      h('button.btn', { type: 'button', style: { flex: '2' }, onclick: () => { close(); finish(note.value); } }, 'Save workout'))));
+      h('button.btn', { type: 'button', style: { flex: '2' }, onclick: () => { close(); finish(note.value, dato); } }, 'Save workout'))));
 }
 
-function finish(noteText) {
+function finish(noteText, dato = iso()) {
   stopRest();
   let changes = [];
   const before = badges(get());
@@ -406,12 +424,22 @@ function finish(noteText) {
     const ses = s.active;
     ses.note = noteText;
     ses.end = new Date().toISOString();
+    // Logged afterwards: move it to that day, same time of day and length
+    if (dato && dato !== ses.date) {
+      const len = new Date(ses.end) - new Date(ses.start);
+      const st = new Date(dato + ses.start.slice(10));
+      const at = Number.isFinite(st.getTime()) ? st : new Date(dato + 'T17:00');
+      ses.date = dato; ses.start = at.toISOString(); ses.end = new Date(at.getTime() + len).toISOString();
+    }
     for (const it of ses.items) if (outcome(it) !== 'skip' && !it.rating) it.rating = 'ok';
     const r = applySession(s.prog, ses, { custom: s.custom });
     changes = r.changes;
     ses.changes = changes;
     s.prog = r.prog;
-    if (ses.items.some((it) => outcome(it) !== 'skip')) s.sessions.push(ses);
+    if (ses.items.some((it) => outcome(it) !== 'skip')) {
+      s.sessions.push(ses);
+      s.sessions.sort((a, b) => (a.start < b.start ? -1 : a.start > b.start ? 1 : 0)); // a late log goes in its place
+    }
     s.active = null;
     // Auto balance: put the most needed exercises into the next workout
     if (s.settings?.balance === 'auto') {
@@ -472,24 +500,112 @@ export { loadable, dayLabel };
 /* ---------- Add an exercise during a workout ---------- */
 async function addExercise() {
   const s = get();
+  const id = await pickExercise({ title: 'Add an exercise', includeMain: s.active.kind === 'free' });
+  if (!id) return;
+  const item = makeItem(get(), id);
+  if (item) editActive((x) => { x.items.push(item); });
+}
+
+/** A session item for any exercise: a main lift (with its program weights) or an accessory. */
+function makeItem(s, id) {
+  if (MAIN[id]) return startSession({ wid: 'F', items: [planT1(s.prog, id, iso(), false)] }).items[0];
+  const plan = planWorkout({ ...s.prog, extra: [{ id }] }, 'A', { custom: s.custom, t3: [] });
+  const item = startSession(plan).items.find((it) => it.exId === id && it.kind === 't3');
+  return item && { ...item, extra: false, key: 't3-' + id, note: item.note.replace(/^Added for balance\. /, '') };
+}
+
+/**
+ * Pick an exercise. like: an exercise id; those that train the same muscles come first
+ * (for "did something else instead"). Otherwise what the muscles lack comes first.
+ * Includes "+ New exercise" for things that are not in the list.
+ */
+async function pickExercise({ title, like = null, includeMain = false }) {
+  const s = get();
   const a = analyze(s);
-  const inSession = new Set(s.active.items.map((it) => it.exId));
-  const atHome = s.active.place === 'home';
+  const inSession = new Set((s.active?.items || []).map((it) => it.exId));
+  const atHome = s.active?.place === 'home';
   const gear = gearOf(s);
-  const all = [...ACCESSORIES, ...s.custom].filter((x) => !inSession.has(x.id) && (!atHome || canDo(x.id, gear, s.custom)));
-  // Exercises that train what is lacking come first
+  let all = [...ACCESSORIES, ...s.custom].filter((x) => !inSession.has(x.id) && (!atHome || canDo(x.id, gear, s.custom)));
+  if (includeMain) all = [...MAIN_IDS.filter((id) => !inSession.has(id)).map((id) => ({ id, name: MAIN[id].name })), ...all];
   const need = (id) => Object.entries(worksFor(id, s.custom)).reduce((sum, [m, f]) => {
     const x = a.by[m];
     return sum + (x && !x.quiet && (!x.optional || x.focus) ? f * Math.max(0, 1 - x.projected / Math.max(1, x.target[0])) : 0);
   }, 0);
-  const sorted = all.map((x) => ({ x, n: need(x.id) })).sort((p, q) => q.n - p.n);
-  const id = await choose({ title: 'Add an exercise', options: sorted.map(({ x, n }) => ({
-    value: x.id, text: x.name,
-    sub: (n > 0.3 ? 'Helps: ' : '') + Object.entries(worksFor(x.id, s.custom)).filter(([, f]) => f >= 1).map(([m]) => MUSCLE[m]?.name).join(', '),
-  })) });
+  const score = like ? (x) => overlap(like, x.id, s.custom) : (x) => need(x.id);
+  const sorted = all.map((x) => ({ x, n: score(x) })).sort((p, q) => q.n - p.n);
+  const muscles = (id) => Object.entries(worksFor(id, s.custom)).filter(([, f]) => f >= 1).map(([m]) => MUSCLE[m]?.name).join(', ');
+  const id = await choose({ title, options: [
+    { value: '__new', text: '+ New exercise', sub: 'Not in the list? Name it and pick the body part' },
+    ...sorted.map(({ x, n }) => ({ value: x.id, text: x.name, sub: (like ? (n >= 1 ? 'Same muscles: ' : '') : n > 0.3 ? 'Helps: ' : '') + muscles(x.id) })),
+  ] });
+  if (id === '__new') return newExerciseSheet(like);
+  return id;
+}
+
+/** Make a new own exercise on the spot. Resolves its id, or null. */
+function newExerciseSheet(like = null) {
+  const guess = { bp: 'chest', op: 'shoulders', sq: 'legs', dl: 'legs', pu: 'back' }[like] || accessory(like, get().custom)?.group || 'chest';
+  const v = { group: guess, kind: 'weight' };
+  const name = h('input', { type: 'text', placeholder: 'Cable flyes', autocomplete: 'off' });
+  const seg = (opts, key) => {
+    const el = h('div.seg', opts.map(([val, t]) => h('button', {
+      type: 'button', 'aria-pressed': String(v[key] === val),
+      onclick: (e) => { v[key] = val; [...el.children].forEach((b) => b.setAttribute('aria-pressed', String(b === e.currentTarget))); },
+    }, t)));
+    return el;
+  };
+  return new Promise((resolve) => {
+    let answer = null;
+    sheet((close) => h('div',
+      h('h2', 'New exercise'),
+      h('p.muted.lead', 'It is saved with your own exercises. The body part tells the app which muscles it trains.'),
+      h('label.field', h('span', 'Name'), name),
+      h('label.field', h('span', 'Body part'), seg(Object.entries(GROUPS), 'group')),
+      h('label.field', h('span', 'Progress by'), seg([['weight', 'Weight'], ['reps', 'Reps'], ['time', 'Time']], 'kind')),
+      h('div.btnrow',
+        h('button.btn.secondary', { type: 'button', onclick: () => close() }, 'Cancel'),
+        h('button.btn', { type: 'button', onclick: () => {
+          const n = name.value.trim();
+          if (!n) { name.focus(); return; }
+          const ex = { id: 'own-' + Date.now().toString(36), name: n.slice(0, 50), group: v.group, kind: v.kind, range: v.kind === 'time' ? [20, 60] : [8, 12], step: 2.5, start: 0, own: true };
+          change((x) => { x.custom = [...(x.custom || []), ex]; }, { quiet: true });
+          answer = ex.id;
+          close();
+        } }, 'Add'))),
+    { onClose: () => resolve(answer) });
+  });
+}
+
+/** You did something else instead of this exercise: log that one, and mark this one as replaced. */
+async function insteadOf(i) {
+  const it = get().active.items[i];
+  const id = await pickExercise({ title: 'What did you do instead of ' + it.name.toLowerCase() + '?', like: it.exId });
   if (!id) return;
-  const prog = { ...s.prog, extra: [{ id }], t3: { A: [], B: [] } };
-  const plan = planWorkout(prog, s.active.wid === 'B' ? 'B' : 'A', { custom: s.custom });
-  const item = startSession(plan).items.find((it) => it.exId === id);
-  if (item) editActive((x) => { x.items.push({ ...item, note: item.note.replace(/^Added for balance\. /, '') }); });
+  const item = makeItem(get(), id);
+  if (!item) return;
+  editActive((a) => {
+    const orig = a.items[i];
+    orig.sets.forEach((x) => { x.done = null; });
+    orig.rating = null;
+    orig.replacedBy = item.name;
+    a.items.splice(i + 1, 0, { ...item, instead: orig.exId, why: 'Instead of ' + orig.name.toLowerCase() });
+  });
+  toast(item.name + ' counts for the muscles. ' + it.name + ' keeps its plan.');
+}
+
+function undoInstead(i) {
+  editActive((a) => {
+    const orig = a.items[i];
+    const j = a.items.findIndex((x, k) => k > i && x.instead === orig.exId);
+    if (j > i) a.items.splice(j, 1);
+    delete orig.replacedBy;
+  });
+}
+
+/** An empty workout: add whatever you did (any exercise, main lifts too). */
+function beginFree() {
+  unlockSound();
+  change((s) => { s.active = startSession({ wid: 'F', place: uiGet('place', 'gym'), kind: 'free', name: 'Own workout', items: [] }); });
+  keepAwake();
+  scrollTo(0, 0);
 }

@@ -126,3 +126,44 @@ test('contributors list where a muscle got its sets', () => {
   const c = contributors(sessions, 'lats');
   assert.equal(c[0].name, 'Pull-ups');
 });
+
+test('a lift replaced by something else: muscles count, the lift is noted, not nagged as missing', async () => {
+  const { planWorkout: pw, startSession: ss, applySession: ap, newProgram: np } = await import('../src/program.js');
+  let prog = np({ start: { sq: 60, bp: 50, dl: 80, op: 35 }, today: '2026-11-01' });
+  const sessions = [];
+  for (const d of ['2026-11-02', '2026-11-06', '2026-11-10']) {
+    const s = ss(pw(prog, 'A', { today: d }), new Date(d + 'T17:00'));
+    for (const it of s.items) {
+      if (it.exId === 'bp') { it.replacedBy = 'Dumbbell fly'; continue; }
+      for (const x of it.sets) x.done = x.reps; it.rating = 'ok';
+    }
+    s.items.push({ kind: 't3', exId: 'db-fly', name: 'Dumbbell fly', instead: 'bp', sets: [{ w: 10, reps: 12, done: 12 }, { w: 10, reps: 12, done: 12 }, { w: 10, reps: 12, done: 12 }] });
+    s.end = new Date(d + 'T18:00').toISOString();
+    sessions.push(s);
+    const before = prog.lifts.bp.w;
+    prog = ap(prog, s).prog;
+    assert.equal(prog.lifts.bp.w, before, 'bench keeps its weight');
+  }
+  const a = analyze({ prog, sessions, custom: [], cardio: [] }, { today: '2026-11-10' });
+  assert.ok(a.by.chest.week >= 3, 'flyes count for the chest');
+  const r = a.alerts.find((x) => x.kind === 'replaced' && x.exId === 'bp');
+  assert.ok(r, a.alerts.map((x) => x.title).join(' / '));
+  assert.match(r.text, /dumbbell fly/);
+  assert.ok(!a.alerts.some((x) => x.kind === 'skipped' && x.exId === 'bp'));
+});
+
+test('an own workout logged afterwards leaves the rotation alone', async () => {
+  const { startSession: ss, applySession: ap, newProgram: np, planT1 } = await import('../src/program.js');
+  const prog = np({ start: { sq: 60, bp: 50, dl: 80, op: 35 }, today: '2026-11-01' });
+  const s = ss({ wid: 'F', place: 'gym', kind: 'free', items: [planT1(prog, 'bp', '2026-11-02', false)] }, new Date('2026-11-02T17:00'));
+  for (const x of s.items[0].sets) x.done = x.reps;
+  s.items[0].rating = 'ok';
+  const r = ap(prog, s).prog;
+  assert.equal(r.next, prog.next);
+  assert.ok(r.lifts.bp.w > prog.lifts.bp.w, 'a bench done in an own workout still progresses');
+  // Logged for an older date: "last done" does not move backwards
+  const later = { ...r, lifts: { ...r.lifts, bp: { ...r.lifts.bp, last: '2026-11-05' } } };
+  const old = ss({ wid: 'F', place: 'gym', kind: 'free', items: [planT1(later, 'bp', '2026-11-03', false)] }, new Date('2026-11-03T17:00'));
+  for (const x of old.items[0].sets) x.done = x.reps;
+  assert.equal(ap(later, old).prog.lifts.bp.last, '2026-11-05');
+});

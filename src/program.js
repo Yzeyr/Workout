@@ -179,7 +179,7 @@ export function orderItems(items, custom = []) {
 
 function gapOf(last, today) { return last ? daysBetween(last, today) : null; }
 
-function planT1(prog, id, today, deload) {
+export function planT1(prog, id, today, deload) {
   const L = prog.lifts[id], def = MAIN[id], jump = prog.jump;
   const gap = gapFactor(gapOf(L.last, today));
   let sets, info = '';
@@ -325,7 +325,7 @@ export function applySession(prog0, session, { custom = [] } = {}) {
   }
   const trained = session.items.some((it) => outcome(it) !== 'skip');
   // Home sessions leave the gym rotation alone: the heavy lifts wait for the next gym day
-  if (trained && session.place !== 'home') {
+  if (trained && session.place !== 'home' && session.kind !== 'free') {
     prog.extra = []; // one-off extras are used up
     prog.pick = null; // a manual choice of lifts was for that workout only
     prog.next = session.wid === 'A' ? 'B' : 'A';
@@ -352,7 +352,7 @@ function applyT1(prog, it, res, today, say) {
   const used = Math.max(...it.sets.map((s) => s.w));
   const top = topSet(it);
   if (top) L.best = Math.max(L.best || 0, e1rm(top.w, top.done, top.amrap ? 0 : RIR[it.rating || 'ok']));
-  L.last = today;
+  if (!L.last || today > L.last) L.last = today;
   L.n = (L.n || 0) + 1;
 
   if (L.mode === 'wave') return applyWave(prog, id, it, res, say);
@@ -427,7 +427,7 @@ function applyWave(prog, id, it, res, say) {
 
 function applyT2(prog, it, res, today, say) {
   const T = prog.lifts[it.exId].t2, jump = prog.jump;
-  prog.lifts[it.exId].last = today; // a T2 day counts as training the lift, for the break rules
+  if (!(prog.lifts[it.exId].last > today)) prog.lifts[it.exId].last = today; // a T2 day counts as training the lift, for the break rules
   const used = it.sets[0].w;
   if (res === 'done') {
     T.miss = 0; T.w = used;
@@ -444,7 +444,8 @@ function applyT2(prog, it, res, today, say) {
 
 function applyPullups(prog, it, res, today, say) {
   const P = prog.pu;
-  P.last = today; P.n = (P.n || 0) + 1;
+  if (!(P.last > today)) P.last = today;
+  P.n = (P.n || 0) + 1;
   const test = it.sets.find((s) => s.test);
   if (test && test.done != null) {
     const before = P.max;
@@ -492,7 +493,7 @@ function applyT3(prog, it, res, a, say) {
 /** Says when a lighter couple of sessions would help, or null. */
 export function deloadReason(prog, sessions, today = iso()) {
   if (prog.deload) return null;
-  const recent = sessions.filter((s) => !s.deload && s.place !== 'home').slice(-3);
+  const recent = sessions.filter((s) => !s.deload && s.place !== 'home' && s.kind !== 'free').slice(-3);
   const tough = recent.flatMap((s) => s.items.filter((it) => it.kind === 't1' && (it.rating === 'hard' || outcome(it) === 'fail'))).length;
   if (recent.length >= 3 && tough >= 2) return 'Your main lifts have felt hard or fallen short ' + tough + ' times in the last 3 sessions.';
   const resets = MAIN_IDS.flatMap((id) => prog.lifts[id].resets || []).filter((d) => daysBetween(d, today) <= 14);
