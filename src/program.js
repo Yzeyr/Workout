@@ -120,7 +120,7 @@ function wantedInc(id, lift) {
 export const DEFAULT_UPPER = { A: 'bp', B: 'op' };
 
 /** The workout to do, with weights. Nothing is changed. upper: 'bp' | 'op' (optional). */
-export function planWorkout(prog, wid = prog.next, { today = iso(), custom = [], upper = null } = {}) {
+export function planWorkout(prog, wid = prog.next, { today = iso(), custom = [], upper = null, t3 = null, why = {}, short = false } = {}) {
   wid = wid === 'B' ? 'B' : 'A';
   const lower = wid === 'B' ? 'dl' : 'sq';
   const up = upper === 'bp' || upper === 'op' ? upper : DEFAULT_UPPER[wid];
@@ -131,11 +131,13 @@ export function planWorkout(prog, wid = prog.next, { today = iso(), custom = [],
 
   items.push(planT1(prog, lower, today, deload));
   items.push(planT1(prog, up, today, deload));
-  if (lower === 'dl') items.push(planT2(prog, 'sq', today, deload));
+  // The light squat is left out when time is short (45 minutes)
+  if (lower === 'dl' && !short) items.push(planT2(prog, 'sq', today, deload));
   items.push(planPullups(prog, wid, today, deload));
-  for (const aid of (prog.t3[wid] || [])) {
+  // Accessories: the ones built for today (planner.js), or the fixed list for this workout
+  for (const aid of (Array.isArray(t3) ? t3 : prog.t3[wid] || [])) {
     const a = accessory(aid, custom);
-    if (a) items.push(planT3(prog, a, deload));
+    if (a) items.push({ ...planT3(prog, a, deload), ...(why[aid] ? { why: why[aid] } : {}) });
   }
   // One-off extras for muscle balance (from the balance check or the coach), for the next workout only
   for (const x of (prog.extra || [])) {

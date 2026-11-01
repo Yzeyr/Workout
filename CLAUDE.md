@@ -11,7 +11,7 @@ untouched in `v1/` with its own service worker and its data under the
 ## Layout
 - `index.html`, `app.css`, `manifest.webmanifest`, `sw.js`, `icons/`
 - `src/main.js` start-up, tabs, routing (`#train`, `#history`, `#body`, `#coach`, `#settings`)
-- `src/planner.js` **today's lifts**: one heavy lower (squat/deadlift) + one heavy upper (bench/press) picked by how due each lift is (per week: squat 2, bench 2, deadlift 1, press 1.3) and how recovered its muscles are; manual pick via `prog.pick` lasts for today only
+- `src/planner.js` **today's lifts**: one heavy lower (squat/deadlift) + one heavy upper (bench/press) picked by how due each lift is (per week: squat 2, bench 2, deadlift 1, press 1.3) and how recovered its muscles are; manual pick via `prog.pick` lasts for today only. It also **builds the accessories** each time (`buildAccessories`): 0–4 by the time chosen (`settings.sessionMin` 45/60/75; 45 drops the light squat), greedy picks for the muscles that lag most and are recovered, a penalty for reloading muscles the heavy lifts hit hard (no RDL after deadlifts), keeps an exercise going ≤28 days for progression and varies it after ~6 weeks; `settings.accMode` 'fixed' uses the old lists, which otherwise act as favourites
 - `src/program.js` **the brain**: workouts (wid A = squat day, B = deadlift day), progression, failure ladder, waves, break rules, deloads, pull-ups, accessories. Pure functions, tested.
 - `src/data/exercises.js` main lifts, workouts, accessories, rest tips, cardio types, measurements
 - `src/state.js` the saved state (`workout:state`), `src/store.js` localStorage with visible errors

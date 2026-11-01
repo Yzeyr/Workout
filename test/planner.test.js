@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { newProgram, planWorkout, startSession, applySession } from '../src/program.js';
 import { chooseSession, planToday, options, scoreLift } from '../src/planner.js';
+import { iso } from '../src/program.js';
 import { analyze } from '../src/muscles.js';
 
 function setup() {
@@ -70,4 +71,61 @@ test('options list all four combinations, the suggestion first', () => {
   assert.equal(list.length, 4);
   assert.ok(list[0].best);
   assert.equal(list[0].lower + list[0].upper, 'sqbp');
+});
+
+import { buildAccessories, estimateMinutes } from '../src/planner.js';
+
+function runWeeks(st, days) {
+  for (const d of days) {
+    const plan = planToday(st, at(d));
+    const s = startSession(plan, new Date(d + 'T17:00'));
+    for (const it of s.items) { for (const x of it.sets) x.done = x.reps; it.rating = 'ok'; }
+    s.end = new Date(d + 'T18:00').toISOString();
+    st.sessions.push(s);
+    st.prog = applySession(st.prog, s).prog;
+  }
+}
+
+test('more time gives more accessories; 45 min drops the light squat', () => {
+  const st = setup();
+  const n = (m) => { st.settings = { sessionMin: m }; return planToday(st, at('2026-11-02')).items.filter((i) => i.kind === 't3').length; };
+  assert.ok(n(45) <= n(60) && n(60) < n(75), [n(45), n(60), n(75)].join(','));
+  st.settings = { sessionMin: 45 };
+  st.prog.pick = { date: '2026-11-02', lower: 'dl', upper: 'op' };
+  assert.ok(!planToday(st, at('2026-11-02')).items.some((i) => i.kind === 't2'));
+  st.settings = { sessionMin: 60 };
+  assert.ok(planToday(st, at('2026-11-02')).items.some((i) => i.kind === 't2'));
+});
+
+test('accessories go to what lags, each with a reason', () => {
+  const st = setup();
+  const b = buildAccessories(st, { lower: 'sq', upper: 'bp', wid: 'A', today: '2026-11-02', minutes: 75 });
+  assert.ok(b.ids.length >= 2);
+  // The default plan leaves hamstrings and calves short: the first picks fix that
+  assert.ok(b.ids.some((id) => ['rdl', 'leg-curl', 'db-rdl', 'nordic'].includes(id)), b.ids.join(','));
+  for (const id of b.ids) assert.match(b.why[id], /^For /);
+});
+
+test('no hinge accessory straight after heavy deadlifts', () => {
+  const st = setup();
+  const b = buildAccessories(st, { lower: 'dl', upper: 'op', wid: 'B', today: '2026-11-02', minutes: 75 });
+  assert.ok(!b.ids.includes('rdl') && !b.ids.includes('db-rdl'), b.ids.join(','));
+});
+
+test('an exercise is kept going for weeks, then varied', () => {
+  const st = setup();
+  const days = [];
+  for (let i = 0; i < 24; i++) { const d = new Date('2026-11-02T12:00'); d.setDate(d.getDate() + Math.round(i * 7 / 3)); days.push(iso(d)); }
+  runWeeks(st, days);
+  // Over 8 weeks the same accessory comes back (so it can progress), but not only one per muscle
+  const used = new Map();
+  for (const s of st.sessions) for (const it of s.items) if (it.kind === 't3') used.set(it.exId, (used.get(it.exId) || 0) + 1);
+  assert.ok(Math.max(...used.values()) >= 4, JSON.stringify([...used]));
+  assert.ok(used.size >= 4, JSON.stringify([...used]));
+});
+
+test('time estimate is in a sensible range', () => {
+  const st = setup();
+  const m = estimateMinutes(planToday(st, at('2026-11-02')).items);
+  assert.ok(m >= 40 && m <= 80, String(m));
 });

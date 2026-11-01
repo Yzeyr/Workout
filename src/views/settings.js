@@ -33,6 +33,12 @@ export function settingsView(root) {
         if (v) change((x) => { x.prog.jump = v; });
       } }),
       row({ title: 'Equipment at home', sub: gearText(gearOf(s)), onclick: gearSheet }),
+      row({ title: 'Accessories', sub: (s.settings?.accMode || 'auto') === 'auto' ? 'Built for each workout from what lags behind and what is recovered' : 'Fixed lists for squat days and deadlift days', value: (s.settings?.accMode || 'auto') === 'auto' ? 'Built' : 'Fixed', onclick: async () => {
+        const v = await choose({ title: 'Accessories', selected: s.settings?.accMode || 'auto', options: [
+          { value: 'auto', text: 'Built each time', sub: 'Picks 1–4 accessories for the muscles that lag most, keeps an exercise going for weeks so it can progress, then varies it' },
+          { value: 'fixed', text: 'Fixed lists', sub: 'The same accessories every squat day and every deadlift day (Train → Accessories)' }] });
+        if (v) change((x) => { x.settings = { ...(x.settings || {}), accMode: v }; });
+      } }),
       row({ title: 'Own exercises', sub: s.custom.length ? s.custom.map((c) => c.name).join(', ') : 'Add exercises the catalog lacks', onclick: customSheet })),
     block('App', '',
       row({ title: 'Rest timer sound', value: uiGet('sound', '1') === '1' ? 'On' : 'Off', onclick: () => { uiSet('sound', uiGet('sound', '1') === '1' ? '0' : '1'); settingsView(root); } }),

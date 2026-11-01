@@ -16,7 +16,7 @@ import { cardioSheet } from './body.js';
 import { go } from '../nav.js';
 import { analyze, balanceExtras } from '../muscles.js';
 import { alertsBlock } from './muscles.js';
-import { planToday, options } from '../planner.js';
+import { planToday, options, SESSION_MINUTES } from '../planner.js';
 import { readinessCard } from './today.js';
 import { badges, newBadges } from '../badges.js';
 import { worksFor, MUSCLE } from '../data/muscles.js';
@@ -84,12 +84,14 @@ function nextView(root) {
         h('button', { type: 'button', onclick: () => change((x) => { x.prog = startDeload(x.prog); }) }, 'Yes'),
         h('button', { type: 'button', onclick: () => change((x) => { x.prog = skipDeload(x.prog); }) }, 'No'))),
     h('div.hero',
-      h('div.kicker', plan.deload ? 'Today · lighter session' : plan.choice.manual ? 'Today · your choice' : 'Today'),
+      h('div.kicker', (plan.deload ? 'Today · lighter session' : plan.choice.manual ? 'Today · your choice' : 'Today') + ' · about ' + plan.minutes + ' min'),
       h('h2', plan.name),
       h('p.why', whyLine(plan)),
       h('ul.plan', planRows),
       [...plan.choice.reasons, ...plan.notes, ...plan.items.filter((i) => i.note && i.kind === 't1' && /days|Stalled|Missed|Wave/.test(i.note)).map((i) => MAIN[i.exId].short + ': ' + i.note)]
         .map((n) => h('p.muted.small', { style: { marginTop: '10px' } }, n)),
+      h('div.timechoice', h('span', 'Time today'),
+        h('div.seg.mini', SESSION_MINUTES.map((m) => h('button', { type: 'button', 'aria-pressed': String(plan.target === m), onclick: () => change((x) => { x.settings = { ...(x.settings || {}), sessionMin: m }; }) }, m + ' min')))),
       h('div.btnrow',
         h('button.btn', { type: 'button', style: { flex: '2' }, onclick: () => begin(plan) }, 'Start workout'),
         h('button.btn.secondary', { type: 'button', onclick: () => changeSheet() }, icon('swap'), 'Change'))),
@@ -110,7 +112,7 @@ function planList(items) {
     const same = reps.every((r) => r === reps[0]);
     const scheme = it.kind === 'pu' ? it.sets.length + ' sets' : same ? it.sets.length + ' × ' + reps[0] + (it.sets.some((x) => x.amrap) ? '+' : '') : it.sets.length + ' sets';
     const weight = it.bodyweight ? (top > 0 ? '+' + num(top) : 'BW') : it.accKind && it.accKind !== 'weight' ? '' : top > 0 ? num(top) : 'BW';
-    const label = it.slot && it.kind !== 'pu' ? it.slot : it.extra ? 'Balance' : TIER[it.kind];
+    const label = it.slot && it.kind !== 'pu' ? it.slot : it.extra ? 'Balance' : it.why || TIER[it.kind];
     return h('li', { style: { '--c': 'var(--' + it.colour + ')' } }, h('span.dot'),
       h('div', h('b', it.name), h('small', label + ' · ' + scheme + (it.unit === 's' ? ' s' : ''))),
       h('span.w', weight));
@@ -286,7 +288,7 @@ function exerciseCard(it, i) {
 
   return h('article.ex' + (res !== 'skip' && allDone ? '.done' : ''), { style: { '--c': 'var(--' + it.colour + ')' } },
     h('div.head',
-      h('div.t', h('div.tier', it.extra ? 'Balance · ' + TIER[it.kind] : TIER[it.kind]), h('div.name', it.name),
+      h('div.t', h('div.tier', it.extra ? 'Balance · ' + TIER[it.kind] : it.why ? TIER[it.kind] + ' · ' + it.why : TIER[it.kind]), h('div.name', it.name),
         h('div.meta', setsSummary(it))),
       weightBox,
       h('button.iconbtn', { type: 'button', 'aria-label': 'More for ' + it.name, onclick: () => itemMenu(i), style: { background: 'transparent' } }, icon('more'))),
@@ -444,7 +446,7 @@ export function accessoriesSheet() {
     const all = [...ACCESSORIES, ...s.custom];
     clear(content,
       h('h2', 'Accessories'),
-      h('p.muted.lead', 'Extra work after the main lifts. 1–3 per workout is plenty. They go up by reps first, then weight.'),
+      h('p.muted.lead', (get().settings?.accMode || 'auto') === 'auto' ? 'The app picks accessories for each workout from what lags behind. The ones here are favourites: they get picked a little more often. They go up by reps first, then weight.' : 'Extra work after the main lifts. 1–3 per workout is plenty. They go up by reps first, then weight.'),
       ['A', 'B'].map((w) => h('div', { style: { margin: '0 -16px 12px' } },
         h('div.row', { style: { gridTemplateColumns: '1fr auto' } }, h('div.main', h('b', 'Workout ' + w)), h('span.value', s.prog.t3[w].length + ' chosen')),
         s.prog.t3[w].map((id) => {
